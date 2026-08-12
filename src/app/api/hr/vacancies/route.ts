@@ -78,7 +78,7 @@ export async function POST(req: Request) {
         description,
         department,
         employmentType: employmentType || 'FULL_TIME',
-        status: 'PUBLISHED',
+        status: 'ACTIVE',
         salaryMin,
         salaryMax,
         currency

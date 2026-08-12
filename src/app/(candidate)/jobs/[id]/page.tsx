@@ -13,7 +13,7 @@ export default async function PublicJobPage({ params }: { params: Promise<{ id: 
     include: { company: true }
   })
 
-  if (!job || job.status !== 'PUBLISHED') {
+  if (!job || job.status !== 'ACTIVE') {
     notFound()
   }
 
@@ -49,7 +49,7 @@ export default async function PublicJobPage({ params }: { params: Promise<{ id: 
           </div>
 
           <div className="prose max-w-none text-gray-700">
-            {job.description.split('\n').map((paragraph, idx) => (
+            {(job.description || '').split('\n').map((paragraph, idx) => (
               <p key={idx} className="mb-4">{paragraph}</p>
             ))}
           </div>

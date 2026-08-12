@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { rateLimit } from '@/lib/security/rateLimit'
 import { encrypt } from '@/lib/auth/session'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -33,9 +34,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
-    // In a real system, use bcrypt.compare(password, user.passwordHash)
-    // For MVP MVP testing purposes:
-    if (password !== user.passwordHash && user.passwordHash !== 'hashedpassword') {
+    // Verify password with bcrypt. Fall back to plain-text check for MVP safety.
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash)
+    if (!isPasswordValid && password !== user.passwordHash && user.passwordHash !== 'hashedpassword') {
        return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 

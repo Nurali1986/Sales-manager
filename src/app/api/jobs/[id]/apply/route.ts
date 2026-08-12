@@ -29,7 +29,7 @@ export async function POST(
     }
 
     const job = await prisma.job.findUnique({ where: { id: jobId } })
-    if (!job || job.status !== 'PUBLISHED') {
+    if (!job || job.status !== 'ACTIVE') {
       return NextResponse.json({ error: 'Job is not available' }, { status: 404 })
     }
 

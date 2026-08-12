@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client'
+import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -15,8 +17,8 @@ async function main() {
   })
 
   // HR User
-  // Assuming a pre-hashed password for demo (e.g. "password123")
-  const passwordHash = '$2a$10$X8a/36F7nKw1/XzV5i/vUuZ6iUjYV31FvHwV2tZ.Vn.L2H8u2Y9/q'
+  // Hash password for demo (e.g. "password123")
+  const passwordHash = await bcrypt.hash('password123', 10)
   
   const hrUser = await prisma.user.upsert({
     where: { email: 'hr@pifagordemo.com' },
@@ -43,11 +45,72 @@ async function main() {
     },
   })
 
-  // Assessment Config
+  // Demo Candidate
+  const candidate = await prisma.candidate.upsert({
+    where: { phone: '+998901234567' },
+    update: {},
+    create: {
+      firstName: 'Ali',
+      lastName: 'Valiyev',
+      phone: '+998901234567',
+      email: 'ali.valiyev@example.com',
+    },
+  })
+
+  // Demo Application
+  const application = await prisma.application.create({
+    data: {
+      candidateId: candidate.id,
+      jobId: job.id,
+      status: 'APPLIED',
+    },
+  })
+
+  // Demo Assessment
+  const rawToken = 'demo-assessment-token-123'
+  const secureTokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
+
+  const assessment = await prisma.assessment.create({
+    data: {
+      applicationId: application.id,
+      candidateId: candidate.id,
+      jobId: job.id,
+      token: rawToken,
+      secureTokenHash: secureTokenHash,
+      status: 'NOT_STARTED',
+    },
+  })
+
+  // Create standard stages
+  const DEFAULT_STAGES = [
+    { type: 'PROFILE', order: 1 },
+    { type: 'CV', order: 2 },
+    { type: 'TEST', order: 3 },
+    { type: 'CASE', order: 4 },
+    { type: 'SCRIPT', order: 5 },
+    { type: 'LIVE_SALES', order: 6 },
+    { type: 'VIDEO', order: 7 }
+  ]
+
+  const stageData = DEFAULT_STAGES.map(s => ({
+    assessmentId: assessment.id,
+    type: s.type as any,
+    order: s.order,
+    status: 'NOT_STARTED' as any
+  }))
+
+  await prisma.assessmentStage.createMany({
+    data: stageData
+  })
+
+  // Assessment Config linked to the Assessment
   await prisma.assessmentStageConfig.createMany({
-    data: [
-      { assessmentId: job.id, stageType: 'CV', weight: 10, maxScore: 100 }, // Wait, job.id isn't AssessmentId, the config links to Assessment.
-    ]
+    data: DEFAULT_STAGES.map(s => ({
+      assessmentId: assessment.id,
+      stageType: s.type as any,
+      weight: 10,
+      maxScore: 100
+    }))
   })
 }
 
