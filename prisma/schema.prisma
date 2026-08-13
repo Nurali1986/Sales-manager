@@ -92,9 +92,10 @@ enum AIResultStatus {
 }
 
 enum Recommendation {
-  ADVANCE
-  REVIEW
-  REJECT
+  ADVANCE         // = STRONG_RECOMMENDATION (spec §20)
+  RECOMMEND_INTERVIEW // spec §20
+  REVIEW          // = REVIEW (spec §20)
+  REJECT          // = NOT_RECOMMENDED (spec §20)
 }
 
 // ==========================================
@@ -266,6 +267,7 @@ model Question {
   questionText  String
   options       Json         // Array of options
   correctAnswer String
+  explanation   String?      @db.Text // Spec §8: explanation maydoni
   points        Float        @default(1.0)
   difficulty    Difficulty   @default(MEDIUM)
   order         Int          @default(0)

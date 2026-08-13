@@ -11,13 +11,14 @@ describe('End-to-End Candidate Assessment Flow', () => {
   let token: string
 
   beforeAll(async () => {
+    const uid = Date.now()
     // 1. Setup Test Data
-    company = await prisma.company.create({ data: { name: 'Pifagor Demo Furniture E2E' } })
+    company = await prisma.company.create({ data: { name: `Pifagor E2E ${uid}` } })
     
     hr = await prisma.user.create({
       data: {
         companyId: company.id,
-        email: 'hr_e2e@example.com',
+        email: `hr-e2e-${uid}@example.com`,
         passwordHash: 'hashedpassword',
         role: 'HR'
       }

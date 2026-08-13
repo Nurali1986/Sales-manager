@@ -9,9 +9,11 @@ import { PrimaryButton } from '@/components/candidate/Button'
 import { TextArea } from '@/components/candidate/TextArea'
 import { AutosaveIndicator, SaveState } from '@/components/candidate/AutosaveIndicator'
 import { AssessmentStageType } from '@prisma/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function CasePage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [token, setToken] = useState<string | null>(null)
   const [progress, setProgress] = useState<any>(null)
   const [content, setContent] = useState('')
@@ -84,8 +86,8 @@ export default function CasePage({ params }: { params: Promise<{ token: string }
       setError('Please provide a more detailed response.')
       return
     }
-    
-    if (!window.confirm('Are you sure you want to submit? You cannot edit this later.')) return
+
+    if (!window.confirm('Are you sure you want to submit?')) return
 
     setSubmitting(true)
     setError(null)
@@ -114,18 +116,18 @@ export default function CasePage({ params }: { params: Promise<{ token: string }
   return (
     <AssessmentLayout>
       <AssessmentProgress currentStage={AssessmentStageType.CASE} completedStages={progress?.completedStages || []} />
-      <StageHeader title="Practical Sales Case" description="Read the scenario below and provide your approach." />
+      <StageHeader title={t.caseTitle} description={t.caseDesc} />
 
       <div style={{ backgroundColor: '#f1f5f9', padding: '1.5rem', borderRadius: 'var(--radius)', marginBottom: '2rem', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
-        {casePrompt}
+        {casePrompt || t.caseScenario}
       </div>
 
       <div style={{ position: 'relative' }}>
-        <TextArea 
-          label="Your Response:" 
+        <TextArea
+          label={t.caseTitle + ':'}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Write your approach here..."
+          placeholder={t.casePlaceholder}
           error={error || undefined}
           style={{ minHeight: '300px' }}
         />
@@ -136,14 +138,15 @@ export default function CasePage({ params }: { params: Promise<{ token: string }
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
         <span style={{ fontSize: '0.875rem', color: 'var(--muted-text)' }}>
-          Minimum recommended length: 100 characters
+          {content.length} characters
         </span>
-        <PrimaryButton 
-          onClick={handleSubmit} 
+        <PrimaryButton
+          onClick={handleSubmit}
           disabled={submitting}
         >
-          {submitting ? 'Submitting...' : 'Submit Response'}
+          {submitting ? t.submitting : t.submit}
         </PrimaryButton>
-      </div>    </AssessmentLayout>
+      </div>
+    </AssessmentLayout>
   )
 }

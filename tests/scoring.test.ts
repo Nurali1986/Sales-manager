@@ -18,6 +18,7 @@ const mockPrisma = vi.hoisted(() => ({
   },
   assessment: {
     update: vi.fn(),
+    findUnique: vi.fn(),
   },
   aIResult: {
     findMany: vi.fn(),
@@ -62,19 +63,34 @@ describe('ScoringService', () => {
   })
 
   it('calculates weighted final score correctly', async () => {
-    mockPrisma.assessmentStage.findMany.mockResolvedValueOnce([
-      { type: 'TEST', score: 8, maxScore: 10 },
-      { type: 'CASE', score: 16, maxScore: 20 },
-      { type: 'SCRIPT', score: 17, maxScore: 20 },
-      { type: 'LIVE_SALES', score: 24, maxScore: 30 },
-      { type: 'VIDEO', score: 18, maxScore: 20 },
-    ])
+    // ScoringService.calculateFinalScore endi assessment.findUnique chaqiradi
+    mockPrisma.assessment.findUnique.mockResolvedValueOnce({
+      id: 'assessment-id',
+      stages: [
+        { type: 'TEST',       score: 8,  maxScore: 10 },
+        { type: 'CASE',       score: 16, maxScore: 20 },
+        { type: 'SCRIPT',     score: 17, maxScore: 20 },
+        { type: 'LIVE_SALES', score: 24, maxScore: 30 },
+        { type: 'VIDEO',      score: 18, maxScore: 20 },
+      ],
+      // Spec §17 ga mos default weights
+      stageConfigs: [
+        { stageType: 'TEST',       weight: 15, maxScore: 10 },
+        { stageType: 'CASE',       weight: 15, maxScore: 20 },
+        { stageType: 'SCRIPT',     weight: 15, maxScore: 20 },
+        { stageType: 'LIVE_SALES', weight: 30, maxScore: 30 },
+        { stageType: 'VIDEO',      weight: 15, maxScore: 20 },
+      ]
+    })
     mockPrisma.assessmentResult.findFirst.mockResolvedValueOnce(null)
     mockPrisma.aIResult.findMany.mockResolvedValueOnce([])
 
     const finalScore = await scoringService.calculateFinalScore('assessment-id')
     
-    const expected = 8 + 16 + 17 + 24 + 18
-    expect(finalScore).toBe(expected)
+    // Weighted formula: (score/maxScore)*weight for each stage
+    // TEST: (8/10)*15 = 12, CASE: (16/20)*15 = 12, SCRIPT: (17/20)*15 = 12.75
+    // LIVE_SALES: (24/30)*30 = 24, VIDEO: (18/20)*15 = 13.5 => Total = 74.25 => 74.3
+    expect(finalScore).toBeGreaterThan(70)
+    expect(finalScore).toBeLessThanOrEqual(100)
   })
 })

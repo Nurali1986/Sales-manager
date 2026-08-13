@@ -7,9 +7,11 @@ import { AssessmentProgress } from '@/components/candidate/AssessmentProgress'
 import { StageHeader } from '@/components/candidate/StageHeader'
 import { CameraRecorder } from '@/components/candidate/CameraRecorder'
 import { AssessmentStageType } from '@prisma/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function VideoPage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [token, setToken] = useState<string | null>(null)
   const [progress, setProgress] = useState<any>(null)
 
@@ -38,17 +40,15 @@ export default function VideoPage({ params }: { params: Promise<{ token: string 
   return (
     <AssessmentLayout>
       <AssessmentProgress currentStage={AssessmentStageType.VIDEO} completedStages={progress.completedStages} />
-      <StageHeader title="Video Presentation" description="Record a 60-second video." />
+      <StageHeader title={t.videoTitle} description={t.videoDesc} />
 
       <div style={{ backgroundColor: '#f1f5f9', padding: '1.5rem', borderRadius: 'var(--radius)', marginBottom: '2rem', lineHeight: '1.6' }}>
         <strong>Task:</strong>
-        <p>Tasavvur qiling, siz bizning mebel ishlab chiqarish fabrikamizning Sales Managerisiz.</p>
-        <p>60 soniya ichida mijozga nima uchun aynan bizning fabrikamizdan mebel sotib olishi kerakligini tushuntiring.</p>
-        <p>O'zingizni haqiqiy mijoz oldida turgandek tasavvur qiling.</p>
+        <p>{t.videoDesc}</p>
       </div>
 
-      <CameraRecorder 
-        token={token} 
+      <CameraRecorder
+        token={token}
         onUploadSuccess={() => {
           router.push(`/assessment/${token}/completed`)
         }}

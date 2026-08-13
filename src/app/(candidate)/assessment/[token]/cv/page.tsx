@@ -7,9 +7,11 @@ import { AssessmentProgress } from '@/components/candidate/AssessmentProgress'
 import { StageHeader } from '@/components/candidate/StageHeader'
 import { FileUpload } from '@/components/candidate/FileUpload'
 import { AssessmentStageType } from '@prisma/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function CVPage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [token, setToken] = useState<string | null>(null)
   const [progress, setProgress] = useState<any>(null)
 
@@ -38,13 +40,13 @@ export default function CVPage({ params }: { params: Promise<{ token: string }> 
   return (
     <AssessmentLayout>
       <AssessmentProgress currentStage={AssessmentStageType.CV} completedStages={progress.completedStages} />
-      <StageHeader title="Upload Resume / CV" description="Please upload your latest CV in PDF or DOCX format." />
-      
-      <FileUpload 
-        token={token} 
+      <StageHeader title={t.cvTitle} description={t.cvDesc} />
+
+      <FileUpload
+        token={token}
         onUploadSuccess={() => {
           router.push(`/assessment/${token}/test`)
-        }} 
+        }}
       />
     </AssessmentLayout>
   )

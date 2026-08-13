@@ -7,9 +7,11 @@ import { AssessmentProgress } from '@/components/candidate/AssessmentProgress'
 import { StageHeader } from '@/components/candidate/StageHeader'
 import { PrimaryButton } from '@/components/candidate/Button'
 import { AssessmentStageType } from '@prisma/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function TestPage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [token, setToken] = useState<string | null>(null)
   const [progress, setProgress] = useState<any>(null)
   const [questions, setQuestions] = useState<any[]>([])
@@ -17,6 +19,7 @@ export default function TestPage({ params }: { params: Promise<{ token: string }
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
     params.then(p => {
@@ -84,24 +87,20 @@ export default function TestPage({ params }: { params: Promise<{ token: string }
     }
   }
 
-  const [currentIndex, setCurrentIndex] = useState(0)
-
-  // ... (previous functions remain the same, just rendering logic changes below)
-
-  if (!token || loading) return <AssessmentLayout><p>Loading test...</p></AssessmentLayout>
+  if (!token || loading) return <AssessmentLayout><p>Loading...</p></AssessmentLayout>
 
   const currentQuestion = questions[currentIndex]
 
   return (
     <AssessmentLayout>
       <AssessmentProgress currentStage={AssessmentStageType.TEST} completedStages={progress?.completedStages || []} />
-      <StageHeader title="Sales Knowledge Test" description="Answer the following multiple-choice questions." />
+      <StageHeader title={t.testTitle} description={t.testDesc} />
 
       {error && <p style={{ color: 'var(--danger)', marginBottom: '1rem', fontWeight: 'bold' }}>{error}</p>}
 
       <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.25rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
         {questions.map((q, idx) => (
-          <div 
+          <div
             key={q.id}
             style={{
               width: '32px',
@@ -131,19 +130,19 @@ export default function TestPage({ params }: { params: Promise<{ token: string }
         ) : (
           <div style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'white' }}>
             <p style={{ color: 'var(--muted-text)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-              Question {currentIndex + 1} of {questions.length}
+              {t.questionNum} {currentIndex + 1} {t.ofText} {questions.length}
             </p>
             <p style={{ fontWeight: 'bold', marginBottom: '1.5rem', fontSize: '1.1rem' }}>
               {currentQuestion.questionText}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {(currentQuestion.options as string[]).map((opt) => (
-                <label 
-                  key={opt} 
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '1rem', 
+                <label
+                  key={opt}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
                     cursor: 'pointer',
                     padding: '1rem',
                     border: `1px solid ${answers[currentQuestion.id] === opt ? 'var(--primary)' : 'var(--border)'}`,
@@ -152,10 +151,10 @@ export default function TestPage({ params }: { params: Promise<{ token: string }
                     transition: 'all 0.2s'
                   }}
                 >
-                  <input 
-                    type="radio" 
-                    name={currentQuestion.id} 
-                    value={opt} 
+                  <input
+                    type="radio"
+                    name={currentQuestion.id}
+                    value={opt}
                     checked={answers[currentQuestion.id] === opt}
                     onChange={() => handleOptionChange(currentQuestion.id, opt)}
                     style={{ width: '1.2rem', height: '1.2rem' }}
@@ -169,32 +168,32 @@ export default function TestPage({ params }: { params: Promise<{ token: string }
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-        <PrimaryButton 
+        <PrimaryButton
           onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
           disabled={currentIndex === 0 || submitting}
           style={{ backgroundColor: 'white', color: 'var(--text)', border: '1px solid var(--border)' }}
         >
-          Previous
+          {t.back}
         </PrimaryButton>
 
         {currentIndex < questions.length - 1 ? (
-          <PrimaryButton 
+          <PrimaryButton
             onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
             disabled={submitting}
           >
-            Next
+            {t.nextQuestion}
           </PrimaryButton>
         ) : (
-          <PrimaryButton 
+          <PrimaryButton
             onClick={() => {
-              if (window.confirm('Are you sure you want to submit? You cannot change your answers afterwards.')) {
+              if (window.confirm('Are you sure you want to submit?')) {
                 handleSubmit()
               }
-            }} 
+            }}
             disabled={submitting || questions.length === 0}
             style={{ backgroundColor: 'var(--success)' }}
           >
-            {submitting ? 'Submitting...' : 'Submit Test'}
+            {submitting ? t.submitting : t.finishTestBtn}
           </PrimaryButton>
         )}
       </div>

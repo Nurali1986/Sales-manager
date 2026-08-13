@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { decrypt } from '@/lib/auth/session'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Define paths that require HR authentication
@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
 
   if (isHrApi || isHrPage) {
     const sessionCookie = request.cookies.get('session')?.value
-    
+
     let isAuthenticated = false
 
     if (sessionCookie) {

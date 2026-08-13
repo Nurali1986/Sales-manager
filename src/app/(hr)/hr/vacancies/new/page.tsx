@@ -3,9 +3,11 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function NewVacancyPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -55,106 +57,100 @@ export default function NewVacancyPage() {
   }
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Create New Vacancy</h1>
-        <Link href="/hr/vacancies" className="text-gray-600 hover:text-gray-900">
+    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+          {t.createVacancyTitle}
+        </h1>
+        <Link href="/hr/vacancies" style={{ color: '#64748b', textDecoration: 'none', fontWeight: 600 }}>
           Cancel
         </Link>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
+        <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#fef2f2', color: '#b91c1c', borderRadius: '8px', border: '1px solid #fecaca' }}>
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white border rounded-xl p-8 shadow-sm">
-        <div className="grid grid-cols-2 gap-6">
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Job Title *</label>
-            <input
-              type="text"
-              name="title"
-              required
-              value={formData.title}
-              onChange={handleChange}
-              className="w-full border-gray-300 rounded-lg p-3 border focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g. Senior Sales Representative"
-            />
-          </div>
+      <form onSubmit={handleSubmit} style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '2rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.5rem' }}>
+            {t.vacancyTitleLabel} *
+          </label>
+          <input
+            type="text"
+            name="title"
+            required
+            value={formData.title}
+            onChange={handleChange}
+            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+            placeholder="e.g. Sales Manager"
+          />
+        </div>
 
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.5rem' }}>
+              {t.departmentLabel}
+            </label>
             <input
               type="text"
               name="department"
               value={formData.department}
               onChange={handleChange}
-              className="w-full border-gray-300 rounded-lg p-3 border focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g. Enterprise Sales"
+              style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+              placeholder="e.g. Sales"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Employment Type</label>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.5rem' }}>
+              {t.employmentTypeLabel}
+            </label>
             <select
               name="employmentType"
               value={formData.employmentType}
               onChange={handleChange}
-              className="w-full border-gray-300 rounded-lg p-3 border focus:ring-blue-500 focus:border-blue-500"
+              style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
             >
               <option value="FULL_TIME">Full Time</option>
               <option value="PART_TIME">Part Time</option>
               <option value="CONTRACT">Contract</option>
             </select>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Min Salary</label>
-            <input
-              type="number"
-              name="salaryMin"
-              value={formData.salaryMin}
-              onChange={handleChange}
-              className="w-full border-gray-300 rounded-lg p-3 border focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g. 50000"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Max Salary</label>
-            <input
-              type="number"
-              name="salaryMax"
-              value={formData.salaryMax}
-              onChange={handleChange}
-              className="w-full border-gray-300 rounded-lg p-3 border focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g. 80000"
-            />
-          </div>
-          
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Job Description *</label>
-            <textarea
-              name="description"
-              required
-              rows={6}
-              value={formData.description}
-              onChange={handleChange}
-              className="w-full border-gray-300 rounded-lg p-3 border focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Describe the role and responsibilities..."
-            />
-          </div>
         </div>
 
-        <div className="pt-4 flex justify-end">
+        <div>
+          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.5rem' }}>
+            {t.descriptionLabel} *
+          </label>
+          <textarea
+            name="description"
+            required
+            rows={6}
+            value={formData.description}
+            onChange={handleChange}
+            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+            placeholder="Describe role and requirements..."
+          />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+            style={{
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              padding: '0.75rem 2rem',
+              borderRadius: '8px',
+              fontWeight: 600,
+              border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
           >
-            {loading ? 'Creating...' : 'Publish Vacancy'}
+            {loading ? t.creatingVacancyMsg : t.createVacancyBtn}
           </button>
         </div>
       </form>

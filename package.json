@@ -11,6 +11,8 @@
         "test": "vitest run"
     },
     "dependencies": {
+        "@aws-sdk/client-s3": "^3.1109.0",
+        "@aws-sdk/s3-request-presigner": "^3.1109.0",
         "@google/genai": "^2.16.0",
         "@prisma/client": "^6.19.3",
         "bcryptjs": "^3.0.3",

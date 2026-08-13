@@ -7,14 +7,16 @@ import { AssessmentProgress } from '@/components/candidate/AssessmentProgress'
 import { StageHeader } from '@/components/candidate/StageHeader'
 import { PrimaryButton } from '@/components/candidate/Button'
 import { AssessmentStageType } from '@prisma/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function SimulationPage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [token, setToken] = useState<string | null>(null)
   const [progress, setProgress] = useState<any>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const [micGranted, setMicGranted] = useState(false)
   const [started, setStarted] = useState(false)
   const [messages, setMessages] = useState<{sender: 'AI' | 'YOU', text: string}[]>([])
@@ -47,7 +49,7 @@ export default function SimulationPage({ params }: { params: Promise<{ token: st
       setMicGranted(true)
       setError(null)
     } catch (err) {
-      setError('Microphone access is required for this step. Please allow microphone access in your browser and try again.')
+      setError(t.micNotice)
     }
   }
 
@@ -73,7 +75,7 @@ export default function SimulationPage({ params }: { params: Promise<{ token: st
 
   const sendMessage = async () => {
     if (!currentInput.trim() || sending) return
-    
+
     const newMsg = { sender: 'YOU' as const, text: currentInput }
     const newHistory = [...messages, newMsg]
     setMessages(newHistory)
@@ -100,11 +102,11 @@ export default function SimulationPage({ params }: { params: Promise<{ token: st
   const handleEnd = async () => {
     setSubmitting(true)
     setError(null)
-    
+
     const transcript = messages.map(m => `${m.sender}:\n"${m.text}"`).join('\n\n')
 
     try {
-      const res = await fetch(`/api/assessment/${token}/simulation/complete`, { 
+      const res = await fetch(`/api/assessment/${token}/simulation/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript })
@@ -124,40 +126,36 @@ export default function SimulationPage({ params }: { params: Promise<{ token: st
   return (
     <AssessmentLayout>
       <AssessmentProgress currentStage={AssessmentStageType.LIVE_SALES} completedStages={progress.completedStages} />
-      <StageHeader title="Live Customer Simulation" description="Interactive AI Customer Conversation" />
-      
+      <StageHeader title={t.simTitle} description={t.simDesc} />
+
       {!micGranted ? (
         <div style={{ padding: '2rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)', textAlign: 'center', backgroundColor: 'white' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>We need access to your microphone</h3>
-          <p style={{ color: 'var(--muted-text)', marginBottom: '2rem' }}>
-            To conduct the sales conversation, please allow microphone access.
-          </p>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>{t.micNotice}</h3>
           {error && <p style={{ color: 'var(--danger)', marginBottom: '1rem' }}>{error}</p>}
           <PrimaryButton onClick={requestMic}>
-            Allow Microphone
+            {t.allowMicBtn}
           </PrimaryButton>
         </div>
       ) : !started ? (
         <div style={{ padding: '2rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)', textAlign: 'center', backgroundColor: 'white' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Microphone Allowed ✓</h3>
           <p style={{ color: 'var(--muted-text)', marginBottom: '2rem' }}>
-            Endi siz haqiqiy mijoz bilan suhbat qilayotgandek vaziyatni sinab ko'rasiz.<br/><br/>
-            AI mijoz rolini bajaradi. Siz Sales Manager sifatida suhbatni olib boring.
+            {t.simDesc}
           </p>
           <PrimaryButton onClick={startSimulation}>
-            Start Conversation
+            {t.startSimBtn}
           </PrimaryButton>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)', fontWeight: 'bold' }}>
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'var(--success)' }}></div>
-            AI Customer Connected
+            {t.aiConnected}
           </div>
 
-          <div style={{ 
-            border: '1px solid var(--border)', 
-            borderRadius: 'var(--radius)', 
+          <div style={{
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
             backgroundColor: 'white',
             height: '400px',
             overflowY: 'auto',
@@ -167,7 +165,7 @@ export default function SimulationPage({ params }: { params: Promise<{ token: st
             gap: '1rem'
           }}>
             {messages.map((m, i) => (
-              <div key={i} style={{ 
+              <div key={i} style={{
                 alignSelf: m.sender === 'YOU' ? 'flex-end' : 'flex-start',
                 backgroundColor: m.sender === 'YOU' ? 'var(--primary)' : '#f1f5f9',
                 color: m.sender === 'YOU' ? 'white' : 'var(--text)',
@@ -189,27 +187,27 @@ export default function SimulationPage({ params }: { params: Promise<{ token: st
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={currentInput}
               onChange={e => setCurrentInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendMessage()}
-              placeholder="Type your response here..."
+              placeholder={t.typeSimMessage}
               disabled={sending}
               style={{ flex: 1, padding: '0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}
             />
             <PrimaryButton onClick={sendMessage} disabled={sending || !currentInput.trim()}>
-              Send
+              {t.sendBtn}
             </PrimaryButton>
           </div>
 
           <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-            <button 
+            <button
               onClick={handleEnd}
               disabled={submitting || messages.length < 2}
               style={{ padding: '0.75rem 2rem', border: '1px solid var(--danger)', color: 'var(--danger)', borderRadius: 'var(--radius)', backgroundColor: 'white', fontWeight: 'bold', cursor: 'pointer' }}
             >
-              {submitting ? 'Ending...' : 'End Conversation'}
+              {submitting ? 'Ending...' : t.endSimBtn}
             </button>
           </div>
         </div>

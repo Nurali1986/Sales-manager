@@ -1,62 +1,86 @@
+'use client'
+
 import React, { useState } from 'react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export function StageEvaluationPanel({ stages }: { stages: any[] }) {
+  const { t } = useLanguage()
   const [activeStage, setActiveStage] = useState(stages[0]?.id)
 
+  const stageLabels: Record<string, string> = {
+    PROFILE: t.stageProfile,
+    CV: t.stageCV,
+    TEST: t.stageTest,
+    CASE: t.stageCase,
+    SCRIPT: t.stageScript,
+    LIVE_SALES: t.stageSim,
+    VIDEO: t.stageVideo,
+  }
+
   return (
-    <div className="bg-white border rounded-lg shadow-sm overflow-hidden mb-8">
-      <div className="flex overflow-x-auto border-b">
+    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', marginBottom: '2rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
         {stages.map(stage => (
           <button
             key={stage.id}
             onClick={() => setActiveStage(stage.id)}
-            className={`px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 ${
-              activeStage === stage.id
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            style={{
+              padding: '1rem 1.5rem',
+              fontSize: '0.875rem',
+              fontWeight: activeStage === stage.id ? 700 : 500,
+              color: activeStage === stage.id ? '#2563eb' : '#64748b',
+              border: 'none',
+              borderBottom: activeStage === stage.id ? '2px solid #2563eb' : '2px solid transparent',
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
           >
-            {stage.type.replace('_', ' ')}
+            {stageLabels[stage.type] || stage.type}
           </button>
         ))}
       </div>
 
-      <div className="p-6">
+      <div style={{ padding: '1.5rem' }}>
         {stages.map(stage => {
           if (stage.id !== activeStage) return null
-          
+
           const result = stage.aiResults?.[0]?.validatedResult
-          
+
           return (
-            <div key={stage.id} className="space-y-8 animate-in fade-in">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xl font-bold text-gray-900">{stage.type.replace('_', ' ')} Evaluation</h4>
-                <div className="text-2xl font-bold text-blue-600">{stage.score ?? 'Pending'} <span className="text-sm text-gray-500 font-normal">/ 100</span></div>
+            <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  {stageLabels[stage.type] || stage.type} {t.stageBreakdownTitle}
+                </h4>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2563eb' }}>
+                  {stage.score ?? 'Pending'} <span style={{ fontSize: '0.875rem', color: '#94a3b8', fontWeight: 400 }}>/ 100</span>
+                </div>
               </div>
 
               {result ? (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
                     {result.criteria?.map((c: any, i: number) => (
-                      <div key={i} className="p-4 bg-gray-50 rounded-lg border">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-semibold text-gray-900">{c.name}</span>
-                          <span className="text-sm font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      <div key={i} style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>{c.name}</span>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, backgroundColor: '#eff6ff', color: '#1d4ed8', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
                             {c.score} / 100
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mt-2">
-                          <span className="font-medium text-gray-900">Evidence: </span>
+                        <p style={{ fontSize: '0.85rem', color: '#475569', margin: '0.5rem 0 0 0' }}>
+                          <strong style={{ color: '#0f172a' }}>{t.evidenceText}: </strong>
                           {c.evidence}
                         </p>
                       </div>
                     ))}
                   </div>
-                  
+
                   {stage.type === 'LIVE_SALES' && stage.submissions?.[0] && (
-                    <div className="mt-8">
-                      <h4 className="text-lg font-bold text-gray-900 mb-4">Simulation Transcript</h4>
-                      <div className="bg-gray-50 p-4 rounded-lg border font-mono text-sm max-h-96 overflow-y-auto whitespace-pre-wrap">
+                    <div style={{ marginTop: '1.5rem' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>Simulation Transcript</h4>
+                      <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontFamily: 'monospace', fontSize: '0.85rem', maxHeight: '300px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
                         {stage.submissions[0].content
                           .replace(/User:/g, 'CANDIDATE:')
                           .replace(/AI:/g, 'CUSTOMER:')}
@@ -64,27 +88,18 @@ export function StageEvaluationPanel({ stages }: { stages: any[] }) {
                     </div>
                   )}
 
-                  {(stage.type === 'SALES_CASE' || stage.type === 'SALES_SCRIPT') && stage.submissions?.[0] && (
-                    <div className="mt-8">
-                      <h4 className="text-lg font-bold text-gray-900 mb-4">Original Candidate Response</h4>
-                      <div className="bg-gray-50 p-4 rounded-lg border text-sm max-h-96 overflow-y-auto whitespace-pre-wrap text-gray-800">
+                  {(stage.type === 'CASE' || stage.type === 'SCRIPT') && stage.submissions?.[0] && (
+                    <div style={{ marginTop: '1.5rem' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>Original Response</h4>
+                      <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.875rem', maxHeight: '300px', overflowY: 'auto', whiteSpace: 'pre-wrap', color: '#334155' }}>
                         {stage.submissions[0].content}
-                      </div>
-                    </div>
-                  )}
-
-                  {stage.type === 'VIDEO_PITCH' && stage.submissions?.[0] && (
-                    <div className="mt-8">
-                      <h4 className="text-lg font-bold text-gray-900 mb-4">Video Submission</h4>
-                      <div className="bg-blue-50 text-blue-800 p-4 rounded-lg border border-blue-200 text-sm">
-                        Video URL generated. (MVP: Direct playback available via secure link in candidate files)
                       </div>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="text-gray-500 p-4 bg-gray-50 rounded border text-center">
-                  Evaluation pending or failed.
+                <div style={{ color: '#64748b', padding: '1.5rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                  Evaluation pending or completed.
                 </div>
               )}
             </div>

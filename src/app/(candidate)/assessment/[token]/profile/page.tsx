@@ -7,12 +7,14 @@ import { AssessmentProgress } from '@/components/candidate/AssessmentProgress'
 import { StageHeader } from '@/components/candidate/StageHeader'
 import { PrimaryButton } from '@/components/candidate/Button'
 import { AssessmentStageType } from '@prisma/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function ProfilePage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [token, setToken] = useState<string | null>(null)
   const [progress, setProgress] = useState<any>(null)
-  
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -47,16 +49,16 @@ export default function ProfilePage({ params }: { params: Promise<{ token: strin
     e.preventDefault()
     setLoading(true)
     setErrors({})
-    
+
     try {
       const res = await fetch(`/api/assessment/${token}/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       })
-      
+
       const data = await res.json()
-      
+
       if (!res.ok) {
         if (data.error?.code === 'VALIDATION_ERROR') {
           setErrors({ general: data.error.message })
@@ -83,26 +85,26 @@ export default function ProfilePage({ params }: { params: Promise<{ token: strin
   return (
     <AssessmentLayout>
       <AssessmentProgress currentStage={AssessmentStageType.PROFILE} completedStages={progress.completedStages} />
-      <StageHeader title="Your Profile" description="Please provide your contact information." />
-      
+      <StageHeader title={t.profileTitle} description={t.profileDesc} />
+
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>First Name *</label>
-            <input 
-              name="firstName" 
-              value={formData.firstName} 
-              onChange={handleChange} 
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>{t.firstNameLabel} *</label>
+            <input
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleChange}
               required
               style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: '1rem' }}
             />
           </div>
           <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Last Name *</label>
-            <input 
-              name="lastName" 
-              value={formData.lastName} 
-              onChange={handleChange} 
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>{t.lastNameLabel} *</label>
+            <input
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleChange}
               required
               style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: '1rem' }}
             />
@@ -110,12 +112,12 @@ export default function ProfilePage({ params }: { params: Promise<{ token: strin
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Phone Number *</label>
-          <input 
-            name="phone" 
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>{t.phoneLabel} *</label>
+          <input
+            name="phone"
             type="tel"
-            value={formData.phone} 
-            onChange={handleChange} 
+            value={formData.phone}
+            onChange={handleChange}
             required
             placeholder="+998"
             style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: '1rem' }}
@@ -123,22 +125,22 @@ export default function ProfilePage({ params }: { params: Promise<{ token: strin
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Email (Optional)</label>
-          <input 
-            name="email" 
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>{t.emailLabel}</label>
+          <input
+            name="email"
             type="email"
-            value={formData.email} 
-            onChange={handleChange} 
+            value={formData.email}
+            onChange={handleChange}
             style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: '1rem' }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>City (Optional)</label>
-          <input 
-            name="city" 
-            value={formData.city} 
-            onChange={handleChange} 
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>{t.cityLabel}</label>
+          <input
+            name="city"
+            value={formData.city}
+            onChange={handleChange}
             style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: '1rem' }}
           />
         </div>
@@ -146,7 +148,7 @@ export default function ProfilePage({ params }: { params: Promise<{ token: strin
         {errors.general && <p style={{ color: 'var(--danger)' }}>{errors.general}</p>}
 
         <PrimaryButton type="submit" disabled={loading} style={{ marginTop: '1rem' }}>
-          {loading ? 'Saving...' : 'Continue'}
+          {loading ? t.saving : t.next}
         </PrimaryButton>
       </form>
     </AssessmentLayout>

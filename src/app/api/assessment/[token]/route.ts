@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { AssessmentService } from '@/services/assessment.service'
 import { AssessmentStageService } from '@/services/assessmentStage.service'
+import { rateLimit } from '@/lib/security/rateLimit'
 
 export async function GET(
   request: Request,
@@ -8,6 +9,16 @@ export async function GET(
 ) {
   try {
     const { token } = await params
+
+    // Rate limiting: brute-force token hujumiga qarshi — 1 daqiqada max 30 ta so'rov
+    const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
+    if (!rateLimit(`assessment:${ip}`, 30, 60_000)) {
+      return NextResponse.json(
+        { error: { code: 'RATE_LIMITED', message: 'Juda ko\'p so\'rov. Iltimos, biroz kuting.' } },
+        { status: 429 }
+      )
+    }
+
     const assessment = await AssessmentService.getAssessmentByToken(token)
 
     const currentStage = AssessmentStageService.getCurrentStage(assessment.stages)

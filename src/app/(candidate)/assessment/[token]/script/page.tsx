@@ -9,9 +9,11 @@ import { PrimaryButton } from '@/components/candidate/Button'
 import { TextArea } from '@/components/candidate/TextArea'
 import { AutosaveIndicator, SaveState } from '@/components/candidate/AutosaveIndicator'
 import { AssessmentStageType } from '@prisma/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function ScriptPage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [token, setToken] = useState<string | null>(null)
   const [progress, setProgress] = useState<any>(null)
   const [content, setContent] = useState('')
@@ -85,7 +87,7 @@ export default function ScriptPage({ params }: { params: Promise<{ token: string
       return
     }
 
-    if (!window.confirm('Are you sure you want to submit? You cannot edit this later.')) return
+    if (!window.confirm('Are you sure you want to submit?')) return
 
     setSubmitting(true)
     setError(null)
@@ -114,18 +116,18 @@ export default function ScriptPage({ params }: { params: Promise<{ token: string
   return (
     <AssessmentLayout>
       <AssessmentProgress currentStage={AssessmentStageType.SCRIPT} completedStages={progress?.completedStages || []} />
-      <StageHeader title="Sales Script Writing" description="Write a sales script based on the instructions below." />
+      <StageHeader title={t.scriptTitle} description={t.scriptDesc} />
 
       <div style={{ backgroundColor: '#f1f5f9', padding: '1.5rem', borderRadius: 'var(--radius)', marginBottom: '2rem', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
-        {scriptPrompt}
+        {scriptPrompt || t.scriptPrompt}
       </div>
 
       <div style={{ position: 'relative' }}>
-        <TextArea 
-          label="Your Script:" 
+        <TextArea
+          label={t.scriptTitle + ':'}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Write your script here..."
+          placeholder={t.scriptPlaceholder}
           error={error || undefined}
           style={{ minHeight: '300px' }}
         />
@@ -136,14 +138,15 @@ export default function ScriptPage({ params }: { params: Promise<{ token: string
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
         <span style={{ fontSize: '0.875rem', color: 'var(--muted-text)' }}>
-          Minimum recommended length: 100 characters
+          {content.length} characters
         </span>
-        <PrimaryButton 
-          onClick={handleSubmit} 
+        <PrimaryButton
+          onClick={handleSubmit}
           disabled={submitting}
         >
-          {submitting ? 'Submitting...' : 'Submit Script'}
+          {submitting ? t.submitting : t.submit}
         </PrimaryButton>
-      </div>    </AssessmentLayout>
+      </div>
+    </AssessmentLayout>
   )
 }

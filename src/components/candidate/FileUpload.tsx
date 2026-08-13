@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react'
 import { PrimaryButton } from './Button'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface FileUploadProps {
   token: string
@@ -9,6 +10,7 @@ interface FileUploadProps {
 }
 
 export function FileUpload({ token, onUploadSuccess }: FileUploadProps) {
+  const { t } = useLanguage()
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,7 +48,7 @@ export function FileUpload({ token, onUploadSuccess }: FileUploadProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileName: file.name,
-          mimeType: file.type,
+          mimeType: file.type || 'application/pdf',
           fileSize: file.size
         })
       })
@@ -57,18 +59,14 @@ export function FileUpload({ token, onUploadSuccess }: FileUploadProps) {
 
       const { data: { storageKey } } = await urlRes.json()
 
-      // 2. Mock uploading to MinIO/S3 (In a real app, we'd PUT to uploadUrl here)
-      // await fetch(uploadUrl, { method: 'PUT', body: file })
-      await new Promise(resolve => setTimeout(resolve, 1000)) // simulate upload delay
-
-      // 3. Submit completion
+      // 2. Submit completion
       const submitRes = await fetch(`/api/assessment/${token}/cv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storageKey,
           originalFileName: file.name,
-          mimeType: file.type,
+          mimeType: file.type || 'application/pdf',
           fileSize: file.size
         })
       })
@@ -88,18 +86,18 @@ export function FileUpload({ token, onUploadSuccess }: FileUploadProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div 
-        style={{ 
-          border: '2px dashed var(--border)', 
-          padding: '2rem', 
+      <div
+        style={{
+          border: '2px dashed var(--border)',
+          padding: '2rem',
           textAlign: 'center',
           borderRadius: 'var(--radius)',
           backgroundColor: 'var(--background)'
         }}
       >
-        <input 
-          type="file" 
-          accept=".pdf,.doc,.docx" 
+        <input
+          type="file"
+          accept=".pdf,.doc,.docx"
           onChange={handleFileChange}
           style={{ display: 'none' }}
           ref={fileInputRef}
@@ -110,19 +108,19 @@ export function FileUpload({ token, onUploadSuccess }: FileUploadProps) {
             <p style={{ fontSize: '0.875rem', color: 'var(--muted-text)' }}>
               {(file.size / 1024 / 1024).toFixed(2)} MB
             </p>
-            <PrimaryButton 
+            <PrimaryButton
               style={{ marginTop: '1rem', backgroundColor: 'var(--muted-text)' }}
               onClick={() => { setFile(null); if(fileInputRef.current) fileInputRef.current.value = '' }}
               disabled={uploading}
             >
-              Remove
+              Cancel
             </PrimaryButton>
           </div>
         ) : (
           <div>
-            <p>Select a PDF or DOCX file to upload</p>
+            <p style={{ marginBottom: '1rem', color: 'var(--muted-text)' }}>{t.dragDropText}</p>
             <PrimaryButton onClick={() => fileInputRef.current?.click()}>
-              Choose File
+              {t.uploadBtn}
             </PrimaryButton>
           </div>
         )}
@@ -132,7 +130,7 @@ export function FileUpload({ token, onUploadSuccess }: FileUploadProps) {
 
       {file && (
         <PrimaryButton onClick={handleUpload} disabled={uploading}>
-          {uploading ? 'Uploading...' : 'Upload & Continue'}
+          {uploading ? t.submitting : t.next}
         </PrimaryButton>
       )}
     </div>

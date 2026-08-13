@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function HRDashboard() {
+  const { t } = useLanguage()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -16,70 +18,88 @@ export default function HRDashboard() {
       })
   }, [])
 
-  if (loading) return <div className="p-8">Loading dashboard...</div>
-  if (!data) return <div className="p-8 text-red-500">Failed to load dashboard</div>
+  if (loading) return <div style={{ padding: '2rem' }}>Loading...</div>
+  if (!data) return <div style={{ padding: '2rem', color: 'red' }}>Failed to load dashboard</div>
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <Link href="/hr/vacancies" className="px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700">
-          View Vacancies
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+          {t.dashboardNav}
+        </h1>
+        <Link
+          href="/hr/vacancies"
+          style={{
+            padding: '0.6rem 1.25rem',
+            backgroundColor: '#2563eb',
+            color: '#ffffff',
+            borderRadius: '8px',
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            textDecoration: 'none'
+          }}
+        >
+          {t.vacanciesNav}
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        <div className="bg-white p-6 rounded-xl border shadow-sm">
-          <div className="text-sm font-medium text-gray-500 mb-1">Active Vacancies</div>
-          <div className="text-3xl font-bold text-gray-900">{data.activeVacancies}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '3rem' }}>
+        <div style={{ backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#64748b', marginBottom: '0.5rem' }}>{t.activeVacancies}</div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a' }}>{data.activeVacancies}</div>
         </div>
-        <div className="bg-white p-6 rounded-xl border shadow-sm">
-          <div className="text-sm font-medium text-gray-500 mb-1">Total Candidates</div>
-          <div className="text-3xl font-bold text-gray-900">{data.totalApplications}</div>
+
+        <div style={{ backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#64748b', marginBottom: '0.5rem' }}>{t.totalCandidates}</div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a' }}>{data.totalApplications}</div>
         </div>
-        <div className="bg-white p-6 rounded-xl border shadow-sm">
-          <div className="text-sm font-medium text-gray-500 mb-1">Assessments Completed</div>
-          <div className="text-3xl font-bold text-gray-900">{data.assessmentsCompleted}</div>
+
+        <div style={{ backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#64748b', marginBottom: '0.5rem' }}>{t.assessmentsCompleted}</div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a' }}>{data.assessmentsCompleted}</div>
         </div>
-        <div className="bg-white p-6 rounded-xl border shadow-sm">
-          <div className="text-sm font-medium text-gray-500 mb-1">Pending Review</div>
-          <div className="text-3xl font-bold text-blue-600">{data.pendingReview}</div>
+
+        <div style={{ backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#64748b', marginBottom: '0.5rem' }}>{t.pendingReview}</div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#2563eb' }}>{data.pendingReview}</div>
         </div>
-        <div className="bg-white p-6 rounded-xl border shadow-sm">
-          <div className="text-sm font-medium text-gray-500 mb-1">Shortlisted</div>
-          <div className="text-3xl font-bold text-green-600">{data.shortlisted}</div>
+
+        <div style={{ backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#64748b', marginBottom: '0.5rem' }}>{t.shortlisted}</div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#16a34a' }}>{data.shortlisted}</div>
         </div>
-        <div className="bg-white p-6 rounded-xl border shadow-sm">
-          <div className="text-sm font-medium text-gray-500 mb-1">Avg Company Score</div>
-          <div className="text-3xl font-bold text-blue-600">{Math.round(data.averageScore)}</div>
+
+        <div style={{ backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#64748b', marginBottom: '0.5rem' }}>{t.avgScore}</div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#2563eb' }}>{Math.round(data.averageScore)}</div>
         </div>
       </div>
 
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Candidates</h2>
+      <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '1rem' }}>{t.recentCandidates}</h2>
       {data.recentCandidates.length === 0 ? (
-        <div className="bg-gray-50 p-8 rounded border text-center text-gray-500">
+        <div style={{ backgroundColor: '#ffffff', padding: '2rem', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#64748b' }}>
           No candidates have completed assessments yet.
         </div>
       ) : (
-        <div className="bg-white border rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Candidate</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Job</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{t.candidateName}</th>
+                <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Vakansiya</th>
+                <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{t.candidateScore}</th>
+                <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {data.recentCandidates.map((c: any) => (
-                <tr key={c.id}>
-                  <td className="px-6 py-4 font-medium text-gray-900">{c.candidate.firstName} {c.candidate.lastName}</td>
-                  <td className="px-6 py-4 text-gray-500">{c.job.title}</td>
-                  <td className="px-6 py-4 font-bold text-blue-600">{Math.round(c.totalScore)}</td>
-                  <td className="px-6 py-4">
-                    <Link href={`/hr/candidates/${c.candidate.id}`} className="text-blue-600 hover:underline font-medium">
-                      Review
+                <tr key={c.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '1rem 1.25rem', fontWeight: 600, color: '#0f172a' }}>{c.candidate.firstName} {c.candidate.lastName}</td>
+                  <td style={{ padding: '1rem 1.25rem', color: '#64748b' }}>{c.job.title}</td>
+                  <td style={{ padding: '1rem 1.25rem', fontWeight: 800, color: '#2563eb' }}>{Math.round(c.totalScore)}</td>
+                  <td style={{ padding: '1rem 1.25rem' }}>
+                    <Link href={`/hr/candidates/${c.candidate.id}`} style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>
+                      {t.actionView} &rarr;
                     </Link>
                   </td>
                 </tr>

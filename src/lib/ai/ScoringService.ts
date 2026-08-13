@@ -2,10 +2,19 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
+// Standart weights — spesifikatsiya §17 ga mos (agar DB da konfiguratsiya bo'lmasa)
+const DEFAULT_WEIGHTS = {
+  CV:         { weight: 10, maxScore: 100 },
+  TEST:       { weight: 15, maxScore: 10  },
+  CASE:       { weight: 15, maxScore: 20  },
+  SCRIPT:     { weight: 15, maxScore: 20  },
+  LIVE_SALES: { weight: 30, maxScore: 30  },
+  VIDEO:      { weight: 15, maxScore: 20  },
+}
+
 export class ScoringService {
   /**
-   * Deterministically calculates the test score for the candidate based on 
-   * the CandidateAnswer table, bypassing AI.
+   * Test ballini hisoblaydi — server-side, frontend dan manipulyatsiya bo'lmaydi.
    */
   async calculateTestScore(assessmentId: string): Promise<number> {
     const stage = await prisma.assessmentStage.findFirst({
@@ -19,7 +28,6 @@ export class ScoringService {
     for (const ans of stage.answers) {
       if (ans.answer === ans.question.correctAnswer) {
         correct++
-        // Update the database to reflect correct answer for analytics
         await prisma.candidateAnswer.update({
           where: { id: ans.id },
           data: { isCorrect: true, score: 1 }
@@ -39,46 +47,58 @@ export class ScoringService {
   }
 
   /**
-   * Calculates the final weighted score for the assessment and saves it to AssessmentResult.
+   * Yakuniy weighted score hisoblaydi.
+   * AssessmentStageConfig dan weights o'qiydi — agar yo'q bo'lsa DEFAULT_WEIGHTS ishlatiladi.
    */
   async calculateFinalScore(assessmentId: string) {
-    const stages = await prisma.assessmentStage.findMany({
-      where: { assessmentId }
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      include: {
+        stages: true,
+        stageConfigs: true,
+      }
     })
 
-    const scores = {
-      TEST: { score: 0, maxScore: 10, weight: 10 },
-      CASE: { score: 0, maxScore: 20, weight: 20 },
-      SCRIPT: { score: 0, maxScore: 20, weight: 20 },
-      LIVE_SALES: { score: 0, maxScore: 30, weight: 30 },
-      VIDEO: { score: 0, maxScore: 20, weight: 20 }
+    if (!assessment) throw new Error('Assessment not found')
+
+    // DB dan weights o'qish — §17 talabi
+    const configMap: Record<string, { weight: number; maxScore: number }> = {}
+    for (const cfg of assessment.stageConfigs) {
+      configMap[cfg.stageType] = { weight: cfg.weight, maxScore: cfg.maxScore }
     }
 
-    for (const s of stages) {
-      if (s.type in scores) {
-        const type = s.type as keyof typeof scores
-        scores[type].score = s.score || 0
-        if (s.maxScore) scores[type].maxScore = s.maxScore
+    // Stage ballarini yig'ish
+    const stageScores: Record<string, { score: number; maxScore: number; weight: number }> = {}
+    for (const s of assessment.stages) {
+      const config = configMap[s.type] ?? DEFAULT_WEIGHTS[s.type as keyof typeof DEFAULT_WEIGHTS]
+      if (!config) continue
+
+      stageScores[s.type] = {
+        score: s.score ?? 0,
+        maxScore: s.maxScore ?? config.maxScore,
+        weight: config.weight,
       }
     }
 
-    // Default MVP Weights directly represent raw points out of 100
-    const finalScore = 
-      scores.TEST.score + 
-      scores.CASE.score + 
-      scores.SCRIPT.score + 
-      scores.LIVE_SALES.score + 
-      scores.VIDEO.score
+    // Weighted final score — har bir bosqich o'z weightiga ko'ra hisoblanadi
+    // Formula: sum( (stage_score / stage_maxScore) * stage_weight )
+    let finalScore = 0
+    for (const [, val] of Object.entries(stageScores)) {
+      if (val.maxScore > 0) {
+        finalScore += (val.score / val.maxScore) * val.weight
+      }
+    }
+    finalScore = Math.min(100, Math.round(finalScore * 10) / 10)
 
+    // Recommendation — spesifikatsiya §20 ga mos
     let recommendation: 'ADVANCE' | 'REVIEW' | 'REJECT' = 'REJECT'
-    if (finalScore >= 90) recommendation = 'ADVANCE'
-    else if (finalScore >= 75) recommendation = 'REVIEW'
+    if (finalScore >= 85) recommendation = 'ADVANCE'
+    else if (finalScore >= 65) recommendation = 'REVIEW'
 
-    // Aggregate strengths and weaknesses from AI results
+    // AI result lardan strengths va weaknesses yig'ish
     const allStrengths: string[] = []
     const allWeaknesses: string[] = []
-    
-    // To get strengths/weaknesses, we need to inspect the AIResults
+
     const aiResults = await prisma.aIResult.findMany({
       where: {
         stage: { assessmentId },
@@ -99,13 +119,15 @@ export class ScoringService {
       }
     }
 
+    // Breakdown — har bir bosqich uchun batafsil ma'lumot
     const breakdownData = {
-      test: { ...scores.TEST, percentage: scores.TEST.maxScore > 0 ? (scores.TEST.score / scores.TEST.maxScore) * 100 : 0 },
-      case: { ...scores.CASE, percentage: scores.CASE.maxScore > 0 ? (scores.CASE.score / scores.CASE.maxScore) * 100 : 0 },
-      script: { ...scores.SCRIPT, percentage: scores.SCRIPT.maxScore > 0 ? (scores.SCRIPT.score / scores.SCRIPT.maxScore) * 100 : 0 },
-      simulation: { ...scores.LIVE_SALES, percentage: scores.LIVE_SALES.maxScore > 0 ? (scores.LIVE_SALES.score / scores.LIVE_SALES.maxScore) * 100 : 0 },
-      video: { ...scores.VIDEO, percentage: scores.VIDEO.maxScore > 0 ? (scores.VIDEO.score / scores.VIDEO.maxScore) * 100 : 0 },
-      total: finalScore
+      cv:         stageScores['CV'],
+      test:       stageScores['TEST'],
+      case:       stageScores['CASE'],
+      script:     stageScores['SCRIPT'],
+      simulation: stageScores['LIVE_SALES'],
+      video:      stageScores['VIDEO'],
+      total:      finalScore,
     }
 
     const existingResult = await prisma.assessmentResult.findFirst({
@@ -113,16 +135,17 @@ export class ScoringService {
     })
 
     const updateData = {
-      testScore: scores.TEST.score,
-      caseScore: scores.CASE.score,
-      scriptScore: scores.SCRIPT.score,
-      liveSalesScore: scores.LIVE_SALES.score,
-      videoScore: scores.VIDEO.score,
-      totalScore: finalScore,
+      cvScore:       stageScores['CV']?.score ?? null,
+      testScore:     stageScores['TEST']?.score ?? null,
+      caseScore:     stageScores['CASE']?.score ?? null,
+      scriptScore:   stageScores['SCRIPT']?.score ?? null,
+      liveSalesScore: stageScores['LIVE_SALES']?.score ?? null,
+      videoScore:    stageScores['VIDEO']?.score ?? null,
+      totalScore:    finalScore,
       recommendation,
-      strengths: allStrengths.join('\n'),
-      weaknesses: allWeaknesses.join('\n'),
-      data: breakdownData
+      strengths:     allStrengths.join('\n'),
+      weaknesses:    allWeaknesses.join('\n'),
+      data:          breakdownData,
     }
 
     if (existingResult) {
@@ -132,14 +155,11 @@ export class ScoringService {
       })
     } else {
       await prisma.assessmentResult.create({
-        data: {
-          assessmentId,
-          ...updateData
-        }
+        data: { assessmentId, ...updateData }
       })
     }
 
-    // Update root assessment
+    // Assessment umumiy scoreni yangilash
     await prisma.assessment.update({
       where: { id: assessmentId },
       data: { totalScore: finalScore }

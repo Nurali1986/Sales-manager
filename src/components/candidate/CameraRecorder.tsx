@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { PrimaryButton, SecondaryButton } from './Button'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface CameraRecorderProps {
   token: string
@@ -9,13 +10,14 @@ interface CameraRecorderProps {
 }
 
 export function CameraRecorder({ token, onUploadSuccess }: CameraRecorderProps) {
+  const { t } = useLanguage()
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [recording, setRecording] = useState(false)
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null)
   const [timeLeft, setTimeLeft] = useState(60)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const videoRef = useRef<HTMLVideoElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -47,7 +49,7 @@ export function CameraRecorder({ token, onUploadSuccess }: CameraRecorderProps) 
         videoRef.current.srcObject = mediaStream
       }
     } catch (err) {
-      setError('Camera and microphone access is required.')
+      setError(t.cameraReqDesc)
     }
   }
 
@@ -75,7 +77,7 @@ export function CameraRecorder({ token, onUploadSuccess }: CameraRecorderProps) 
       const blob = new Blob(chunksRef.current, { type: 'video/webm' })
       setVideoBlob(blob)
     }
-    
+
     mediaRecorderRef.current = mediaRecorder
     mediaRecorder.start()
     setRecording(true)
@@ -94,13 +96,13 @@ export function CameraRecorder({ token, onUploadSuccess }: CameraRecorderProps) 
 
     try {
       const file = new File([videoBlob], 'video.webm', { type: 'video/webm' })
-      
+
       const urlRes = await fetch(`/api/assessment/${token}/video/upload-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileName: file.name,
-          mimeType: file.type,
+          mimeType: file.type || 'video/webm',
           fileSize: file.size
         })
       })
@@ -108,16 +110,13 @@ export function CameraRecorder({ token, onUploadSuccess }: CameraRecorderProps) 
       if (!urlRes.ok) throw new Error('Failed to get upload URL')
       const { data: { storageKey } } = await urlRes.json()
 
-      // Mock upload delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
       const submitRes = await fetch(`/api/assessment/${token}/video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storageKey,
           originalFileName: file.name,
-          mimeType: file.type,
+          mimeType: file.type || 'video/webm',
           fileSize: file.size
         })
       })
@@ -136,27 +135,27 @@ export function CameraRecorder({ token, onUploadSuccess }: CameraRecorderProps) 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
       {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
-      
+
       <div style={{ position: 'relative', width: '100%', maxWidth: '500px', backgroundColor: '#000', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
         {!videoBlob ? (
-          <video 
-            ref={videoRef} 
-            autoPlay 
-            muted 
-            playsInline 
-            style={{ width: '100%', display: 'block', aspectRatio: '4/3', objectFit: 'cover' }} 
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            style={{ width: '100%', display: 'block', aspectRatio: '4/3', objectFit: 'cover' }}
           />
         ) : (
-          <video 
-            src={URL.createObjectURL(videoBlob)} 
-            controls 
-            style={{ width: '100%', display: 'block', aspectRatio: '4/3', objectFit: 'cover' }} 
+          <video
+            src={URL.createObjectURL(videoBlob)}
+            controls
+            style={{ width: '100%', display: 'block', aspectRatio: '4/3', objectFit: 'cover' }}
           />
         )}
 
         {recording && (
           <div style={{ position: 'absolute', top: '1rem', right: '1rem', backgroundColor: 'rgba(255,0,0,0.8)', color: 'white', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
-            00:{timeLeft.toString().padStart(2, '0')}
+            00:{timeLeft.toString().padStart(2, '0')} {t.secLeft}
           </div>
         )}
       </div>
@@ -164,15 +163,21 @@ export function CameraRecorder({ token, onUploadSuccess }: CameraRecorderProps) 
       <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
         {!videoBlob ? (
           recording ? (
-            <PrimaryButton onClick={stopRecording} style={{ backgroundColor: 'var(--danger)' }}>Stop Recording</PrimaryButton>
+            <PrimaryButton onClick={stopRecording} style={{ backgroundColor: 'var(--danger)' }}>
+              {t.stopRecordingBtn}
+            </PrimaryButton>
           ) : (
-            <PrimaryButton onClick={startRecording} disabled={!stream}>Start Recording</PrimaryButton>
+            <PrimaryButton onClick={startRecording} disabled={!stream}>
+              {t.startRecordingBtn}
+            </PrimaryButton>
           )
         ) : (
           <>
-            <SecondaryButton onClick={retake} disabled={uploading}>Retake</SecondaryButton>
+            <SecondaryButton onClick={retake} disabled={uploading}>
+              {t.rerecordBtn}
+            </SecondaryButton>
             <PrimaryButton onClick={handleUpload} disabled={uploading}>
-              {uploading ? 'Uploading...' : 'Submit Video'}
+              {uploading ? t.uploadingVideoMsg : t.submitVideoBtn}
             </PrimaryButton>
           </>
         )}

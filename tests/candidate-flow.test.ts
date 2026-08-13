@@ -10,14 +10,15 @@ describe('Candidate Assessment Flow API', () => {
   let token: string
 
   beforeAll(async () => {
+    const uid = Date.now()
     // Setup minimal test data
-    company = await prisma.company.create({ data: { name: 'Flow Test Co' } })
+    company = await prisma.company.create({ data: { name: `Flow Test Co ${uid}` } })
     
     // Create an HR User (using user model)
     hr = await prisma.user.create({
       data: {
         companyId: company.id,
-        email: 'hr@example.com',
+        email: `hr-flow-${uid}@example.com`,
         passwordHash: 'hashedpassword',
         role: 'HR'
       }
@@ -37,8 +38,8 @@ describe('Candidate Assessment Flow API', () => {
       data: {
         firstName: 'John',
         lastName: 'Doe',
-        phone: '+998901234567',
-        email: 'john@example.com'
+        phone: `+9989${uid.toString().slice(-8)}`,
+        email: `john-flow-${uid}@example.com`
       }
     })
 
@@ -56,7 +57,7 @@ describe('Candidate Assessment Flow API', () => {
         applicationId: application.id,
         candidateId: candidate.id,
         jobId: job.id,
-        token: 'test-token-123',
+        token: `test-token-flow-${uid}`,
         status: 'NOT_STARTED',
         stages: {
           create: [

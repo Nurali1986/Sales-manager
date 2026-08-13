@@ -4,11 +4,13 @@ import React, { useEffect, useState, use } from 'react'
 import { ScoreBadge } from '@/components/hr/ScoreBadge'
 import { AISummaryCard } from '@/components/hr/AISummaryCard'
 import { StageEvaluationPanel } from '@/components/hr/StageEvaluationPanel'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function CandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params)
   const candidateId = unwrappedParams.id
-  
+  const { t } = useLanguage()
+
   const [candidate, setCandidate] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
@@ -30,13 +32,13 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
     if (!candidate || updating) return
     setUpdating(true)
     const appId = candidate.applications[0]?.id
-    
+
     await fetch(`/api/hr/candidates/${candidateId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ applicationId: appId, status: newStatus })
     })
-    
+
     await fetchCandidate()
     setUpdating(false)
   }
@@ -55,42 +57,45 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
     }
   }
 
-  if (loading) return <div className="p-8 text-center">Loading candidate...</div>
-  if (!candidate) return <div className="p-8 text-center text-red-500">Candidate not found</div>
+  if (loading) return <div style={{ padding: '2rem' }}>Loading candidate...</div>
+  if (!candidate) return <div style={{ padding: '2rem', color: 'red' }}>Candidate not found</div>
 
   const latestAssessment = candidate.assessments[0]
   const result = latestAssessment?.results[0] || {}
   const application = candidate.applications[0]
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="flex justify-between items-start mb-8">
+    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0' }}>
             {candidate.firstName} {candidate.lastName}
           </h1>
-          <div className="text-gray-500 flex gap-4 text-sm">
+          <div style={{ color: '#64748b', display: 'flex', gap: '1rem', fontSize: '0.875rem' }}>
             <span>{candidate.email}</span>
             <span>•</span>
             <span>{candidate.phone}</span>
             <span>•</span>
-            <span className="font-medium text-blue-600 cursor-pointer hover:underline" onClick={handleViewCV}>
-              View CV
+            <span style={{ fontWeight: 600, color: '#2563eb', cursor: 'pointer' }} onClick={handleViewCV}>
+              {t.viewCVBtn}
             </span>
           </div>
         </div>
-        <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col items-end">
-          <div className="text-sm text-gray-500 uppercase font-medium mb-1">Final Score</div>
-          <div className="text-3xl font-bold text-gray-900">
-            {result.totalScore ? Math.round(result.totalScore) : 'Pending'} <span className="text-lg text-gray-400 font-normal">/ 100</span>
+
+        <div style={{ backgroundColor: '#ffffff', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', textAlign: 'right' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>
+            {t.finalScoreLabel}
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a' }}>
+            {result.totalScore ? Math.round(result.totalScore) : 'Pending'} <span style={{ fontSize: '1rem', color: '#94a3b8', fontWeight: 400 }}>/ 100</span>
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border shadow-sm mb-8 flex gap-4 items-center">
-        <h3 className="font-semibold text-gray-700">HR Decision:</h3>
-        <select 
-          className="border rounded px-4 py-2 font-medium"
+      <div style={{ backgroundColor: '#ffffff', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <h3 style={{ fontWeight: 700, color: '#334155', margin: 0 }}>{t.hrDecisionLabel}:</h3>
+        <select
+          style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 600, fontSize: '0.9rem' }}
           value={application?.status}
           onChange={(e) => handleUpdateStatus(e.target.value)}
           disabled={updating}
@@ -103,26 +108,29 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
           <option value="REJECTED">Rejected</option>
           <option value="WITHDRAWN">Withdrawn</option>
         </select>
-        {updating && <span className="text-sm text-blue-500">Updating...</span>}
+        {updating && <span style={{ fontSize: '0.85rem', color: '#2563eb' }}>{t.saving}</span>}
       </div>
 
       {result.aiFeedback?.summary && (
-        <div className="mb-8">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-4">
-            <h3 className="font-bold text-blue-900 mb-2 uppercase text-sm tracking-wide">AI Recommendation</h3>
-            <div className="flex items-center gap-4">
-              <span className={`text-2xl font-black ${
-                result.recommendation === 'ADVANCE' ? 'text-green-700' :
-                result.recommendation === 'REJECT' ? 'text-red-700' : 'text-yellow-700'
-              }`}>
+        <div style={{ marginBottom: '2rem' }}>
+          <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
+            <h3 style={{ fontWeight: 800, color: '#1e40af', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.5rem 0' }}>
+              {t.aiRecommendationLabel}
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{
+                fontSize: '1.5rem',
+                fontWeight: 900,
+                color: result.recommendation === 'ADVANCE' ? '#15803d' : result.recommendation === 'REJECT' ? '#b91c1c' : '#b45309'
+              }}>
                 {result.recommendation || 'PENDING'}
               </span>
-              <p className="text-blue-800 text-sm">
-                <strong>Disclaimer:</strong> AI recommendation is an assessment aid based purely on the candidate's practical test performance. Final hiring decisions are always made by HR.
+              <p style={{ color: '#1e3a8a', fontSize: '0.875rem', margin: 0 }}>
+                <strong>Note:</strong> AI recommendation is an assessment aid based on candidate performance. Final hiring decisions remain with HR.
               </p>
             </div>
           </div>
-          <AISummaryCard 
+          <AISummaryCard
             summary={result.aiFeedback.summary}
             strengths={result.aiFeedback.strengths || []}
             weaknesses={result.aiFeedback.weaknesses || []}
