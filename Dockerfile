@@ -5,7 +5,7 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
+# Install dependencies based on package manager
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -22,7 +22,7 @@ RUN npx prisma generate
 ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
 
-# Production image, copy all the files and run next
+# Production image, copy all files and run next
 FROM base AS runner
 WORKDIR /app
 
@@ -45,9 +45,8 @@ COPY --from=builder /app/src ./src
 COPY docker-entrypoint.sh ./
 RUN sed -i 's/\r$//' docker-entrypoint.sh && chmod +x docker-entrypoint.sh
 
-EXPOSE 3000
+EXPOSE 3000 3001 3002
 
-ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

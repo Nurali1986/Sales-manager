@@ -26,7 +26,7 @@ services:
     volumes:
       - miniodata:/data
 
-  app:
+  candidate_app:
     build: .
     restart: always
     ports:
@@ -34,7 +34,37 @@ services:
     env_file:
       - .env
     environment:
-      # Override host-specific URLs for internal docker network
+      PORT: "3000"
+      DATABASE_URL: "postgresql://hr_user:hr_password@db:5432/hr_db?schema=public"
+      S3_ENDPOINT: "http://minio:9000"
+    depends_on:
+      - db
+      - minio
+
+  hr_app:
+    build: .
+    restart: always
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      PORT: "3001"
+      DATABASE_URL: "postgresql://hr_user:hr_password@db:5432/hr_db?schema=public"
+      S3_ENDPOINT: "http://minio:9000"
+    depends_on:
+      - db
+      - minio
+
+  superadmin_app:
+    build: .
+    restart: always
+    ports:
+      - "3002:3002"
+    env_file:
+      - .env
+    environment:
+      PORT: "3002"
       DATABASE_URL: "postgresql://hr_user:hr_password@db:5432/hr_db?schema=public"
       S3_ENDPOINT: "http://minio:9000"
     depends_on:

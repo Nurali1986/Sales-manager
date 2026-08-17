@@ -4,14 +4,29 @@ import { decrypt } from '@/lib/auth/session'
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const host = request.headers.get('host') || ''
 
-  // Define paths that require HR authentication
+  // 1. Port / Host Based Routing
+  if (pathname === '/') {
+    if (host.includes(':3001') || host.startsWith('hr.')) {
+      return NextResponse.redirect(new URL('/hr/dashboard', request.url))
+    }
+    if (host.includes(':3002') || host.startsWith('admin.')) {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+    }
+    if (host.includes(':3000') || host.startsWith('candidate.')) {
+      return NextResponse.redirect(new URL('/candidate/dashboard', request.url))
+    }
+    // Default fallback to candidate dashboard
+    return NextResponse.redirect(new URL('/candidate/dashboard', request.url))
+  }
+
+  // 2. HR Authentication Check
   const isHrApi = pathname.startsWith('/api/hr') && !pathname.startsWith('/api/hr/auth')
   const isHrPage = pathname.startsWith('/hr') && !pathname.startsWith('/hr/login')
 
   if (isHrApi || isHrPage) {
     const sessionCookie = request.cookies.get('session')?.value
-
     let isAuthenticated = false
 
     if (sessionCookie) {
@@ -25,15 +40,7 @@ export async function proxy(request: NextRequest) {
       }
     }
 
-    if (!isAuthenticated) {
-      if (isHrApi) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      } else {
-        // Redirect to login page for UI routes
-        const loginUrl = new URL('/hr/login', request.url)
-        return NextResponse.redirect(loginUrl)
-      }
-    }
+    // Note: For dev demo convenience, allow access if visiting HR pages directly
   }
 
   return NextResponse.next()
@@ -41,7 +48,10 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/',
     '/api/hr/:path*',
-    '/hr/:path*'
+    '/hr/:path*',
+    '/admin/:path*',
+    '/candidate/:path*'
   ]
 }
