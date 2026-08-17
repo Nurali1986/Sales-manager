@@ -511,7 +511,9 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
   useEffect(() => {
     const saved = localStorage.getItem('app_lang') as Language
     if (saved && ['uz', 'ru', 'en'].includes(saved)) {
-      setLangState(saved)
+      queueMicrotask(() => {
+        setLangState(saved)
+      })
     }
   }, [])
 

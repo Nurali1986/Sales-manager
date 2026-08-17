@@ -34,6 +34,19 @@ export async function POST(
           completedAt: new Date()
         }
       })
+
+      // Get next stage to set it IN_PROGRESS if applicable
+      const sortedStages = assessment.stages.sort((a, b) => a.order - b.order)
+      const currentIndex = sortedStages.findIndex(s => s.type === AssessmentStageType.LIVE_SALES)
+      if (currentIndex !== -1 && currentIndex < sortedStages.length - 1) {
+        const nextStage = sortedStages[currentIndex + 1]
+        if (nextStage.status === 'NOT_STARTED') {
+          await tx.assessmentStage.update({
+            where: { id: nextStage.id },
+            data: { status: 'IN_PROGRESS' }
+          })
+        }
+      }
     })
 
     return NextResponse.json({ data: { success: true } })
