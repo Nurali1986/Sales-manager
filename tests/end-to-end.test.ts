@@ -49,8 +49,8 @@ describe('End-to-End Candidate Assessment Flow', () => {
       data: {
         firstName: 'Ali',
         lastName: 'Valiyev E2E',
-        phone: '+998901234568',
-        email: 'ali.valiyev.e2e@example.com'
+        phone: `+99890${uid.toString().slice(-7)}`,
+        email: `ali.valiyev.e2e.${uid}@example.com`
       }
     })
 
