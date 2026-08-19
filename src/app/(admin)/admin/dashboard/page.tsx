@@ -1,20 +1,49 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { initialAdminStats } from '@/lib/mockAdminData'
+
+interface AdminStats {
+  totalCompanies: number
+  totalUsers: number
+  totalVacancies: number
+  totalApplications: number
+  activeVacancies: number
+  draftVacancies: number
+  totalCandidates: number
+}
 
 export default function AdminDashboardPage() {
   const router = useRouter()
-  const stats = initialAdminStats
+  const [stats, setStats] = useState<AdminStats | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const mainStatCards = [
-    { label: 'Kompaniyalar', count: stats.totalCompanies.toLocaleString(), icon: '🏢', color: '#2563eb', bg: '#eff6ff', link: '/admin/companies' },
-    { label: 'Foydalanuvchilar', count: stats.totalUsers.toLocaleString(), icon: '👥', color: '#10b981', bg: '#ecfdf5', link: '/admin/users' },
-    { label: 'Vakansiyalar', count: stats.totalVacancies.toLocaleString(), icon: '💼', color: '#7c3aed', bg: '#f5f3ff', link: '/admin/vacancies' },
-    { label: 'Arizalar', count: stats.totalApplications.toLocaleString(), icon: '📩', color: '#0284c7', bg: '#f0f9ff', link: '/admin/applications' },
-  ]
+  useEffect(() => {
+    fetch('/api/admin/vacancies')
+      .then(res => res.json())
+      .then(res => {
+        const jobs = res.data || []
+        setStats({
+          totalCompanies: new Set(jobs.map((j: any) => j.company)).size || 0,
+          totalUsers: 0,
+          totalVacancies: jobs.length,
+          totalApplications: jobs.reduce((acc: number, j: any) => acc + (j.applicationsCount || 0), 0),
+          activeVacancies: jobs.filter((j: any) => j.status === 'ACTIVE').length,
+          draftVacancies: jobs.filter((j: any) => j.status === 'DRAFT').length,
+          totalCandidates: 0,
+        })
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const mainStatCards = stats ? [
+    { label: 'Jami Vakansiyalar', count: stats.totalVacancies, icon: '💼', color: '#7c3aed', bg: '#f5f3ff', link: '/admin/vacancies' },
+    { label: 'Faol Vakansiyalar', count: stats.activeVacancies, icon: '🟢', color: '#16a34a', bg: '#f0fdf4', link: '/admin/vacancies' },
+    { label: 'Moderatsiyada (Draft)', count: stats.draftVacancies, icon: '📝', color: '#d97706', bg: '#fffbeb', link: '/admin/moderation' },
+    { label: 'Jami Arizalar', count: stats.totalApplications, icon: '📩', color: '#0284c7', bg: '#f0f9ff', link: '/admin/applications' },
+  ] : []
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -34,108 +63,84 @@ export default function AdminDashboardPage() {
             🛡️ SuperAdmin Control Center
           </h1>
           <p style={{ margin: '0.4rem 0 0 0', color: '#64748b', fontSize: '0.95rem' }}>
-            Butun platforma kompaniyalari, vakansiyalari, moderatsiya va to'lovlarini global nazorat qilish.
+            Barcha ma'lumotlar bazadan olinadi. Demo ma'lumotlar yo'q.
           </p>
         </div>
+      </div>
 
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>OYLIK PLATFORMA DAROMADI</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#10b981' }}>{stats.monthlyRevenue}</div>
+      {/* Primary Stat Cards */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>⏳ Bazadan yuklanmoqda...</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+          {mainStatCards.map((card, i) => (
+            <div
+              key={i}
+              onClick={() => router.push(card.link)}
+              style={{
+                backgroundColor: '#ffffff',
+                padding: '1.25rem',
+                borderRadius: '14px',
+                border: '1px solid #e2e8f0',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>{card.label}</div>
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '12px',
+                  backgroundColor: card.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.25rem'
+                }}>
+                  {card.icon}
+                </div>
+              </div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 900, color: card.color }}>
+                {card.count}
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
 
-      {/* 4 Primary Stat Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
-        {mainStatCards.map((card, i) => (
-          <div
-            key={i}
-            onClick={() => router.push(card.link)}
-            style={{
-              backgroundColor: '#ffffff',
-              padding: '1.5rem',
-              borderRadius: '16px',
-              border: '1px solid #e2e8f0',
-              cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-              transition: 'all 0.2s ease'
-            }}
-            className="card-hover-effect"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '1.75rem' }}>{card.icon}</span>
-              <span style={{
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                color: card.color,
-                backgroundColor: card.bg,
-                padding: '0.2rem 0.6rem',
-                borderRadius: '6px'
-              }}>
-                Batafsil ➔
-              </span>
-            </div>
-            <div style={{ fontSize: '2.25rem', fontWeight: 900, color: '#0f172a' }}>
-              {card.count}
-            </div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#64748b', marginTop: '0.25rem' }}>
-              {card.label}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* 🚨 "Diqqat talab qiladi" Section */}
+      {/* Quick Actions */}
       <div style={{
         backgroundColor: '#ffffff',
-        padding: '1.75rem',
+        padding: '1.5rem',
         borderRadius: '16px',
         border: '1px solid #e2e8f0',
         boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
       }}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', margin: '0 0 1.25rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          ⚠️ Diqqat talab qiladi (Attention Required)
+        <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '1.25rem', margin: '0 0 1.25rem 0' }}>
+          🔗 Tezkor Havolalar
         </h2>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-          <div
-            onClick={() => router.push('/admin/companies?status=pending')}
-            style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '1.15rem', borderRadius: '12px', cursor: 'pointer' }}
-          >
-            <div style={{ fontWeight: 800, color: '#991b1b', fontSize: '1rem' }}>🔴 {stats.pendingCompanies} ta kompaniya tasdiqlashni kutmoqda</div>
-            <div style={{ fontSize: '0.8rem', color: '#b91c1c', marginTop: '0.25rem' }}>Hujjatlar va INN verifikatsiyasi</div>
-          </div>
-
-          <div
-            onClick={() => router.push('/admin/moderation')}
-            style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', padding: '1.15rem', borderRadius: '12px', cursor: 'pointer' }}
-          >
-            <div style={{ fontWeight: 800, color: '#92400e', fontSize: '1rem' }}>🔴 {stats.pendingVacancies} ta vakansiya moderatsiyada</div>
-            <div style={{ fontSize: '0.8rem', color: '#b45309', marginTop: '0.25rem' }}>E'lon talablarini tekshirish</div>
-          </div>
-
-          <div
-            onClick={() => router.push('/admin/reports')}
-            style={{ backgroundColor: '#fff7ed', border: '1px solid #ffedd5', padding: '1.15rem', borderRadius: '12px', cursor: 'pointer' }}
-          >
-            <div style={{ fontWeight: 800, color: '#c2410c', fontSize: '1rem' }}>🟠 {stats.unresolvedReports} ta shikoyat ko‘rib chiqilmagan</div>
-            <div style={{ fontSize: '0.8rem', color: '#9a3412', marginTop: '0.25rem' }}>Candidate scam shikoyatlari</div>
-          </div>
-
-          <div
-            onClick={() => router.push('/admin/payments')}
-            style={{ backgroundColor: '#fefce8', border: '1px solid #fef08a', padding: '1.15rem', borderRadius: '12px', cursor: 'pointer' }}
-          >
-            <div style={{ fontWeight: 800, color: '#854d0e', fontSize: '1rem' }}>🟠 {stats.paymentIssues} ta to‘lov muammosi</div>
-            <div style={{ fontSize: '0.8rem', color: '#a16207', marginTop: '0.25rem' }}>Muvaffaqiyatsiz tranzaksiyalar</div>
-          </div>
-
-          <div
-            onClick={() => router.push('/admin/support')}
-            style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '1.15rem', borderRadius: '12px', cursor: 'pointer' }}
-          >
-            <div style={{ fontWeight: 800, color: '#1e40af', fontSize: '1rem' }}>🔵 {stats.supportTickets} ta support ticket</div>
-            <div style={{ fontSize: '0.8rem', color: '#1d4ed8', marginTop: '0.25rem' }}>Foydalanuvchilar murojaati</div>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <Link href="/admin/moderation" style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            padding: '1rem 1.25rem', borderRadius: '12px',
+            backgroundColor: '#fffbeb', border: '1px solid #fde68a',
+            textDecoration: 'none', color: '#92400e', fontWeight: 700
+          }}>
+            📝 Moderatsiya {stats?.draftVacancies ? `(${stats.draftVacancies})` : ''}
+          </Link>
+          <Link href="/admin/vacancies" style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            padding: '1rem 1.25rem', borderRadius: '12px',
+            backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe',
+            textDecoration: 'none', color: '#6d28d9', fontWeight: 700
+          }}>
+            💼 Vakansiyalar
+          </Link>
+          <Link href="/admin/companies" style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            padding: '1rem 1.25rem', borderRadius: '12px',
+            backgroundColor: '#eff6ff', border: '1px solid #bfdbfe',
+            textDecoration: 'none', color: '#2563eb', fontWeight: 700
+          }}>
+            🏢 Kompaniyalar
+          </Link>
         </div>
       </div>
     </div>

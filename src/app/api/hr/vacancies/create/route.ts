@@ -1,23 +1,5 @@
-import { PrismaClient } from '@prisma/client'
-import crypto from 'crypto'
-import bcrypt from 'bcryptjs'
-
-const prisma = new PrismaClient()
-
-// Spec §17 weights
-const STAGE_CONFIGS = [
-  { type: 'CV',         order: 2, weight: 10, maxScore: 100 },
-  { type: 'TEST',       order: 3, weight: 15, maxScore: 15  },
-  { type: 'CASE',       order: 4, weight: 15, maxScore: 20  },
-  { type: 'SCRIPT',     order: 5, weight: 15, maxScore: 20  },
-  { type: 'LIVE_SALES', order: 6, weight: 30, maxScore: 30  },
-  { type: 'VIDEO',      order: 7, weight: 15, maxScore: 20  },
-]
-
-const STAGES_WITH_PROFILE = [
-  { type: 'PROFILE', order: 1 },
-  ...STAGE_CONFIGS.map(s => ({ type: s.type, order: s.order }))
-]
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/db/prisma'
 
 // 15 Savol — Sotuv Menejeri (Sales Manager)
 const SALES_MANAGER_QUESTIONS = [
@@ -272,150 +254,75 @@ const HEAD_OF_SALES_QUESTIONS = [
   }
 ]
 
-async function main() {
-  console.log('🌱 Seeding Sales-Only Database...')
+import { getSession } from '@/lib/auth/session'
 
-  const company = await prisma.company.upsert({
-    where: { slug: 'pifagor-demo' },
-    update: {},
-    create: {
-      name: 'Pifagor Sales Academy',
-      slug: 'pifagor-demo',
-      description: 'Sales Manager and Head of Sales AI Assessment Hub',
-    },
-  })
+export async function POST(req: Request) {
+  try {
+    const body = await req.json()
+    const { title, description, productName, salaryMin, salaryMax, location } = body
+    let { companyId } = body
 
-  const passwordHash = await bcrypt.hash('password123', 10)
-  await prisma.user.upsert({
-    where: { email: 'hr@pifagordemo.com' },
-    update: {},
-    create: {
-      companyId: company.id,
-      firstName: 'Demo',
-      lastName: 'HR',
-      email: 'hr@pifagordemo.com',
-      passwordHash: passwordHash,
-      role: 'ADMIN',
-    },
-  })
-
-  // 1. Sotuv Menejeri Job & Questions
-  const smJob = await prisma.job.upsert({
-    where: { id: 'job-sales-manager-1' },
-    update: {},
-    create: {
-      id: 'job-sales-manager-1',
-      companyId: company.id,
-      title: 'Sotuv Menejeri (Sales Manager)',
-      description: 'Mebellar do\'koni uchun B2B/B2C Sotuv Menejeri. Mijozlar bilan muloqot va 5 bosqichli sotuv skriptiga rioya qilish.',
-      department: 'Sales',
-      employmentType: 'FULL_TIME',
-      status: 'ACTIVE',
+    if (!title) {
+      return NextResponse.json({ error: 'Title required' }, { status: 400 })
     }
-  })
 
-  await prisma.question.deleteMany({ where: { jobId: smJob.id } })
-  await prisma.question.createMany({
-    data: SALES_MANAGER_QUESTIONS.map(q => ({
-      jobId: smJob.id,
-      type: 'SINGLE_CHOICE',
-      category: q.category,
-      questionText: q.questionText,
-      options: q.options,
-      correctAnswer: q.correctAnswer,
-      explanation: q.explanation,
-      difficulty: q.difficulty,
-      points: 1.0,
-      order: q.order,
-    }))
-  })
-
-  // 2. Sotuv Bo'limi Boshlig'i Job & Questions
-  const hosJob = await prisma.job.upsert({
-    where: { id: 'job-head-of-sales-2' },
-    update: {},
-    create: {
-      id: 'job-head-of-sales-2',
-      companyId: company.id,
-      title: 'Sotuv Bo\'limi Boshlig\'i (Head of Sales)',
-      description: 'Sotuv bo\'limi rahbari (Sales Director). 5 bosqichli sotuv skriptlarini yaratish, jamoani boshqarish va sotuv huniyligi audit.',
-      department: 'Management',
-      employmentType: 'FULL_TIME',
-      status: 'ACTIVE',
+    // 1. Try to get companyId from HR session
+    if (!companyId) {
+      const session = await getSession()
+      if (session?.companyId) {
+        companyId = session.companyId as string
+      }
     }
-  })
 
-  await prisma.question.deleteMany({ where: { jobId: hosJob.id } })
-  await prisma.question.createMany({
-    data: HEAD_OF_SALES_QUESTIONS.map(q => ({
-      jobId: hosJob.id,
-      type: 'SINGLE_CHOICE',
-      category: q.category,
-      questionText: q.questionText,
-      options: q.options,
-      correctAnswer: q.correctAnswer,
-      explanation: q.explanation,
-      difficulty: q.difficulty,
-      points: 1.0,
-      order: q.order,
-    }))
-  })
+    // 2. Fallback: Find the first company in database
+    if (!companyId) {
+      const firstCompany = await prisma.company.findFirst()
+      if (firstCompany) {
+        companyId = firstCompany.id
+      }
+    }
 
-  // Candidate Setup
-  const candidateSM = await prisma.candidate.upsert({
-    where: { phone: '+998901234567' },
-    update: {},
-    create: { firstName: 'Ali', lastName: 'Valiyev', phone: '+998901234567', email: 'ali.valiyev@example.com' },
-  })
+    if (!companyId) {
+      return NextResponse.json({ error: 'No company found in database. Seed the database first.' }, { status: 400 })
+    }
 
-  const rawTokenSM = 'demo-assessment-token-123'
-  const hashSM = crypto.createHash('sha256').update(rawTokenSM).digest('hex')
-
-  let assSM = await prisma.assessment.findUnique({ where: { token: rawTokenSM } })
-  if (!assSM) {
-    const appSM = await prisma.application.create({
-      data: { candidateId: candidateSM.id, jobId: smJob.id, status: 'APPLIED' }
+    // Create the job with ACTIVE status (live on public portal)
+    const job = await prisma.job.create({
+      data: {
+        companyId,
+        title,
+        description: description || `${title} - ${productName || 'Sotuv mahsuloti'}. Shahar: ${location || 'Toshkent'}`,
+        department: 'Sotuv',
+        employmentType: 'FULL_TIME',
+        status: 'ACTIVE',
+        salaryMin: salaryMin ? parseFloat(salaryMin) : null,
+        salaryMax: salaryMax ? parseFloat(salaryMax) : null,
+        currency: 'UZS'
+      }
     })
 
-    assSM = await prisma.assessment.create({
-      data: { applicationId: appSM.id, candidateId: candidateSM.id, jobId: smJob.id, token: rawTokenSM, secureTokenHash: hashSM, status: 'NOT_STARTED' }
+    // Determine which questions to seed based on the title
+    const isSalesManager = title.includes('Sales Manager') || title.includes('Sotuv Menejeri')
+    const questions = isSalesManager ? SALES_MANAGER_QUESTIONS : HEAD_OF_SALES_QUESTIONS
+
+    // Seed 15 questions for this job
+    await prisma.question.createMany({
+      data: questions.map((q: any) => ({
+        jobId: job.id,
+        type: 'SINGLE_CHOICE',
+        category: q.category,
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+        points: 1.0,
+        difficulty: q.difficulty,
+        order: q.order
+      }))
     })
 
-    await prisma.assessmentStage.createMany({
-      data: STAGES_WITH_PROFILE.map(s => ({ assessmentId: assSM!.id, type: s.type as any, order: s.order, status: 'NOT_STARTED' as any }))
-    })
-    await prisma.assessmentStageConfig.createMany({
-      data: STAGE_CONFIGS.map(s => ({ assessmentId: assSM!.id, stageType: s.type as any, weight: s.weight, maxScore: s.maxScore }))
-    })
+    return NextResponse.json({ data: { job, questionsCreated: questions.length } })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
-
-  // Head of Sales Token Seed
-  const rawTokenHOS = 'demo-head-of-sales-token-456'
-  const hashHOS = crypto.createHash('sha256').update(rawTokenHOS).digest('hex')
-
-  let assHOS = await prisma.assessment.findUnique({ where: { token: rawTokenHOS } })
-  if (!assHOS) {
-    const appHOS = await prisma.application.create({
-      data: { candidateId: candidateSM.id, jobId: hosJob.id, status: 'APPLIED' }
-    })
-
-    assHOS = await prisma.assessment.create({
-      data: { applicationId: appHOS.id, candidateId: candidateSM.id, jobId: hosJob.id, token: rawTokenHOS, secureTokenHash: hashHOS, status: 'NOT_STARTED' }
-    })
-
-    await prisma.assessmentStage.createMany({
-      data: STAGES_WITH_PROFILE.map(s => ({ assessmentId: assHOS!.id, type: s.type as any, order: s.order, status: 'NOT_STARTED' as any }))
-    })
-    await prisma.assessmentStageConfig.createMany({
-      data: STAGE_CONFIGS.map(s => ({ assessmentId: assHOS!.id, stageType: s.type as any, weight: s.weight, maxScore: s.maxScore }))
-    })
-  }
-
-  console.log('🎉 Seed Complete!')
-  console.log('🔗 Sotuv Menejeri Token URL: http://localhost:3000/assessment/demo-assessment-token-123')
-  console.log('🔗 Sotuv Rahbari Token URL: http://localhost:3000/assessment/demo-head-of-sales-token-456')
 }
-
-main()
-  .then(async () => { await prisma.$disconnect() })
-  .catch(async (e) => { console.error(e); await prisma.$disconnect(); process.exit(1) })

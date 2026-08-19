@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LanguageSelector } from '@/components/LanguageSelector'
@@ -23,7 +23,7 @@ const navItems: NavItem[] = [
   { label: 'Analitika', href: '/hr/analytics', icon: '📊' },
   { label: 'Kompaniya', href: '/hr/company', icon: '🏢' },
   { label: 'Jamoa', href: '/hr/team', icon: '👨‍💼' },
-  { label: 'Tarif va to‘lovlar', href: '/hr/billing', icon: '💳' },
+  { label: 'Tarif va to\'lovlar', href: '/hr/billing', icon: '💳' },
   { label: 'Sozlamalar', href: '/hr/settings', icon: '⚙️' },
 ]
 
@@ -37,6 +37,21 @@ export default function HRLayout({
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
   const [globalSearch, setGlobalSearch] = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile/desktop
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Close sidebar when navigating on mobile
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false)
+  }, [pathname, isMobile])
 
   const notifications = [
     { id: 1, text: '🔴 5 ta yangi ariza keldi', time: '10 daqiqa oldin', link: '/hr/candidates?status=new' },
@@ -58,19 +73,36 @@ export default function HRLayout({
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* 1. Sidebar Navigation */}
+
+      {/* Mobile Overlay */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 99,
+          }}
+        />
+      )}
+
+      {/* Sidebar Navigation */}
       <aside style={{
-        width: '260px',
+        width: isMobile ? '280px' : '260px',
         backgroundColor: '#0f172a',
         color: '#f8fafc',
         display: 'flex',
         flexDirection: 'column',
-        position: 'sticky',
+        position: isMobile ? 'fixed' : 'sticky',
         top: 0,
+        left: isMobile ? (sidebarOpen ? '0' : '-300px') : '0',
         height: '100vh',
         boxShadow: '4px 0 12px rgba(0,0,0,0.05)',
-        zIndex: 50,
-        flexShrink: 0
+        zIndex: 100,
+        flexShrink: 0,
+        transition: 'left 0.3s ease',
+        overflowY: 'auto',
       }}>
         {/* Brand Header */}
         <div style={{
@@ -78,30 +110,44 @@ export default function HRLayout({
           borderBottom: '1px solid #1e293b',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem'
+          justifyContent: 'space-between',
         }}>
-          <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
-            backgroundColor: '#2563eb',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 800,
-            fontSize: '1.2rem',
-            color: '#ffffff'
-          }}>
-            hh
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.02em', color: '#ffffff' }}>
-              HH Workspace
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              backgroundColor: '#2563eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: '1.2rem',
+              color: '#ffffff',
+              flexShrink: 0,
+            }}>
+              hh
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>
-              Recruitment Suite
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.02em', color: '#ffffff' }}>
+                HH Workspace
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>
+                Recruitment Suite
+              </div>
             </div>
           </div>
+          {isMobile && (
+            <button
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                background: 'none', border: 'none', color: '#94a3b8',
+                fontSize: '1.5rem', cursor: 'pointer', padding: '0.25rem',
+              }}
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         {/* Navigation List */}
@@ -159,16 +205,10 @@ export default function HRLayout({
           gap: '0.75rem'
         }}>
           <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '6px',
-            backgroundColor: '#3b82f6',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '0.85rem',
-            fontWeight: 700
+            width: '32px', height: '32px', borderRadius: '6px',
+            backgroundColor: '#3b82f6', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '0.85rem', fontWeight: 700, flexShrink: 0,
           }}>
             TS
           </div>
@@ -193,20 +233,35 @@ export default function HRLayout({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 2rem',
+          padding: isMobile ? '0 1rem' : '0 2rem',
           position: 'sticky',
           top: 0,
           zIndex: 40,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+          gap: '0.75rem',
         }}>
+          {/* Hamburger for mobile */}
+          {isMobile && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              style={{
+                background: 'none', border: 'none',
+                fontSize: '1.5rem', cursor: 'pointer', padding: '0.25rem',
+                flexShrink: 0,
+              }}
+            >
+              ☰
+            </button>
+          )}
+
           {/* Global Search */}
-          <form onSubmit={handleSearchSubmit} style={{ width: '340px', position: 'relative' }}>
+          <form onSubmit={handleSearchSubmit} style={{ flex: 1, maxWidth: isMobile ? '100%' : '340px', position: 'relative' }}>
             <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
               🔍
             </span>
             <input
               type="text"
-              placeholder="Qidiruv (nomzod, vakansiya)..."
+              placeholder={isMobile ? "Qidiruv..." : "Qidiruv (nomzod, vakansiya)..."}
               value={globalSearch}
               onChange={(e) => setGlobalSearch(e.target.value)}
               style={{
@@ -222,41 +277,34 @@ export default function HRLayout({
           </form>
 
           {/* Actions & Profile */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <LanguageSelector compact />
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '1.25rem', flexShrink: 0 }}>
+            {!isMobile && <LanguageSelector compact />}
 
             {/* Notifications Icon & Popover */}
             <div style={{ position: 'relative' }}>
               <button
                 onClick={() => setShowNotifs(!showNotifs)}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '1.2rem',
-                  cursor: 'pointer',
-                  padding: '0.4rem',
+                  background: 'none', border: 'none',
+                  fontSize: '1.2rem', cursor: 'pointer', padding: '0.4rem',
                   position: 'relative'
                 }}
                 title="Bildirishnomalar"
               >
                 🔔
                 <span style={{
-                  position: 'absolute',
-                  top: '2px',
-                  right: '2px',
-                  width: '8px',
-                  height: '8px',
-                  backgroundColor: '#ef4444',
-                  borderRadius: '50%'
+                  position: 'absolute', top: '2px', right: '2px',
+                  width: '8px', height: '8px',
+                  backgroundColor: '#ef4444', borderRadius: '50%'
                 }} />
               </button>
 
               {showNotifs && (
                 <div style={{
                   position: 'absolute',
-                  right: 0,
+                  right: isMobile ? '-60px' : 0,
                   top: '40px',
-                  width: '320px',
+                  width: isMobile ? '280px' : '320px',
                   backgroundColor: '#ffffff',
                   borderRadius: '12px',
                   boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
@@ -290,96 +338,73 @@ export default function HRLayout({
               )}
             </div>
 
-            {/* Help Icon */}
-            <a
-              href="https://feedback.hh.ru"
-              target="_blank"
-              rel="noreferrer"
-              style={{ fontSize: '1.2rem', textDecoration: 'none' }}
-              title="Yordam va qo'llanma"
-            >
-              ❓
-            </a>
+            {/* Help Icon - hide on mobile */}
+            {!isMobile && (
+              <a
+                href="https://feedback.hh.ru"
+                target="_blank"
+                rel="noreferrer"
+                style={{ fontSize: '1.2rem', textDecoration: 'none' }}
+                title="Yordam va qo'llanma"
+              >
+                ❓
+              </a>
+            )}
 
             {/* User Dropdown */}
             <div style={{ position: 'relative' }}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.6rem',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '8px'
+                  display: 'flex', alignItems: 'center', gap: '0.6rem',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '0.25rem 0.5rem', borderRadius: '8px'
                 }}
               >
                 <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  backgroundColor: '#2563eb',
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 700,
-                  fontSize: '0.9rem'
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  backgroundColor: '#2563eb', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 700, fontSize: '0.9rem', flexShrink: 0,
                 }}>
                   AK
                 </div>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a' }}>
-                    Azizbek Karimov
+                {!isMobile && (
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a' }}>
+                      Azizbek Karimov
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      HR Admin ▼
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    HR Admin ▼
-                  </div>
-                </div>
+                )}
               </button>
 
               {showUserMenu && (
                 <div style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '48px',
-                  width: '180px',
-                  backgroundColor: '#ffffff',
+                  position: 'absolute', right: 0, top: '48px',
+                  width: '180px', backgroundColor: '#ffffff',
                   borderRadius: '10px',
                   boxShadow: '0 10px 25px rgba(0,0,0,0.12)',
                   border: '1px solid #e2e8f0',
-                  padding: '0.5rem',
-                  zIndex: 100
+                  padding: '0.5rem', zIndex: 100
                 }}>
-                  <Link
-                    href="/hr/settings"
-                    onClick={() => setShowUserMenu(false)}
-                    style={{ display: 'block', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#1e293b', textDecoration: 'none', borderRadius: '6px' }}
-                  >
+                  <Link href="/hr/settings" onClick={() => setShowUserMenu(false)}
+                    style={{ display: 'block', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#1e293b', textDecoration: 'none', borderRadius: '6px' }}>
                     👤 Profilim
                   </Link>
-                  <Link
-                    href="/hr/settings"
-                    onClick={() => setShowUserMenu(false)}
-                    style={{ display: 'block', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#1e293b', textDecoration: 'none', borderRadius: '6px' }}
-                  >
+                  <Link href="/hr/settings" onClick={() => setShowUserMenu(false)}
+                    style={{ display: 'block', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#1e293b', textDecoration: 'none', borderRadius: '6px' }}>
                     🔔 Bildirishnomalar
                   </Link>
-                  <Link
-                    href="/hr/settings"
-                    onClick={() => setShowUserMenu(false)}
-                    style={{ display: 'block', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#1e293b', textDecoration: 'none', borderRadius: '6px' }}
-                  >
+                  <Link href="/hr/settings" onClick={() => setShowUserMenu(false)}
+                    style={{ display: 'block', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#1e293b', textDecoration: 'none', borderRadius: '6px' }}>
                     ⚙️ Sozlamalar
                   </Link>
                   <hr style={{ margin: '0.35rem 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
-                  <Link
-                    href="/hr/login"
-                    onClick={() => setShowUserMenu(false)}
-                    style={{ display: 'block', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#ef4444', fontWeight: 600, textDecoration: 'none', borderRadius: '6px' }}
-                  >
+                  <Link href="/hr/login" onClick={() => setShowUserMenu(false)}
+                    style={{ display: 'block', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#ef4444', fontWeight: 600, textDecoration: 'none', borderRadius: '6px' }}>
                     🚪 Chiqish
                   </Link>
                 </div>
@@ -389,7 +414,13 @@ export default function HRLayout({
         </header>
 
         {/* Page Content */}
-        <main style={{ flex: 1, padding: '2rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+        <main style={{
+          flex: 1,
+          padding: isMobile ? '1rem' : '2rem',
+          maxWidth: '1400px',
+          margin: '0 auto',
+          width: '100%',
+        }}>
           {children}
         </main>
       </div>

@@ -1,12 +1,26 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { initialCandidateProfile, CandidateProfile } from '@/lib/mockCandidateData'
+import { getCandidateFullName, useCurrentCandidate } from '@/lib/candidate/useCurrentCandidate'
 
 export default function CandidateResumePage() {
   const [profile, setProfile] = useState<CandidateProfile>(initialCandidateProfile)
   const [editingSection, setEditingSection] = useState<string | null>(null)
   const [newSkill, setNewSkill] = useState('')
+  const { candidate } = useCurrentCandidate()
+
+  const visibleProfile = useMemo(() => {
+    if (!candidate) return profile
+
+    return {
+      ...profile,
+      name: getCandidateFullName(candidate),
+      location: candidate.city || profile.location,
+      phone: candidate.phone,
+      email: candidate.email || profile.email,
+    }
+  }, [candidate, profile])
 
   const handleAddSkill = () => {
     if (newSkill.trim() && !profile.skills.includes(newSkill.trim())) {
@@ -22,7 +36,7 @@ export default function CandidateResumePage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', maxWidth: '900px', margin: '0 auto' }}>
       {/* Top Controls Header */}
-      <div style={{
+      <div className="resume-top-card" style={{
         backgroundColor: '#ffffff',
         padding: '1.5rem 2rem',
         borderRadius: '16px',
@@ -41,7 +55,7 @@ export default function CandidateResumePage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div className="resume-actions" style={{ display: 'flex', gap: '0.75rem' }}>
           <button
             onClick={() => setEditingSection('personal')}
             style={actionBtnStyle}
@@ -69,18 +83,18 @@ export default function CandidateResumePage() {
           <h3 style={sectionTitleStyle}>👤 Shaxsiy ma'lumotlar</h3>
           <button onClick={() => setEditingSection('personal')} style={editSectionBtnStyle}>✏️ Tahrirlash</button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.75rem' }}>
+        <div className="resume-two-column" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.75rem' }}>
           <div>
             <div style={labelStyle}>Ism-familiya:</div>
-            <div style={valueStyle}>{profile.name}</div>
+            <div style={valueStyle}>{visibleProfile.name}</div>
             <div style={{ ...labelStyle, marginTop: '0.75rem' }}>Telefon:</div>
-            <div style={valueStyle}>{profile.phone}</div>
+            <div style={valueStyle}>{visibleProfile.phone}</div>
           </div>
           <div>
             <div style={labelStyle}>Shahar:</div>
-            <div style={valueStyle}>{profile.location}</div>
+            <div style={valueStyle}>{visibleProfile.location}</div>
             <div style={{ ...labelStyle, marginTop: '0.75rem' }}>Email:</div>
-            <div style={valueStyle}>{profile.email}</div>
+            <div style={valueStyle}>{visibleProfile.email}</div>
           </div>
         </div>
       </div>
@@ -91,14 +105,14 @@ export default function CandidateResumePage() {
           <h3 style={sectionTitleStyle}>🎯 Istalgan lavozim va maosh</h3>
           <button onClick={() => setEditingSection('role')} style={editSectionBtnStyle}>✏️ Tahrirlash</button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.75rem' }}>
+        <div className="resume-two-column" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.75rem' }}>
           <div>
             <div style={labelStyle}>Istalgan lavozim:</div>
-            <div style={{ ...valueStyle, color: '#10b981', fontWeight: 800 }}>{profile.targetRole}</div>
+            <div style={{ ...valueStyle, color: '#10b981', fontWeight: 800 }}>{visibleProfile.targetRole}</div>
           </div>
           <div>
             <div style={labelStyle}>Kutilayotgan maosh:</div>
-            <div style={{ ...valueStyle, color: '#10b981', fontWeight: 800 }}>{(profile.expectedSalary / 1000000).toFixed(0)}–12 mln so‘m</div>
+            <div style={{ ...valueStyle, color: '#10b981', fontWeight: 800 }}>{(visibleProfile.expectedSalary / 1000000).toFixed(0)}–12 mln so‘m</div>
           </div>
         </div>
       </div>
@@ -110,7 +124,7 @@ export default function CandidateResumePage() {
           <button onClick={() => setEditingSection('exp')} style={editSectionBtnStyle}>✏️ Tahrirlash</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.75rem' }}>
-          {profile.experience.map(exp => (
+          {visibleProfile.experience.map(exp => (
             <div key={exp.id} style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a' }}>{exp.role} — {exp.company}</div>
               <div style={{ fontSize: '0.8rem', color: '#64748b', margin: '0.2rem 0' }}>{exp.startDate} – {exp.endDate}</div>
@@ -127,7 +141,7 @@ export default function CandidateResumePage() {
           <button onClick={() => setEditingSection('edu')} style={editSectionBtnStyle}>✏️ Tahrirlash</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.75rem' }}>
-          {profile.education.map(edu => (
+          {visibleProfile.education.map(edu => (
             <div key={edu.id} style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a' }}>{edu.institution}</div>
               <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 700, margin: '0.2rem 0' }}>{edu.degree}</div>
@@ -146,7 +160,7 @@ export default function CandidateResumePage() {
         <div style={{ marginTop: '0.75rem' }}>
           <div style={labelStyle}>Ko'nikmalar:</div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '0.5rem 0 1.25rem 0' }}>
-            {profile.skills.map(s => (
+            {visibleProfile.skills.map(s => (
               <span key={s} style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '0.35rem 0.75rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem' }}>
                 {s}
                 <button onClick={() => handleRemoveSkill(s)} style={{ background: 'none', border: 'none', color: '#ef4444', marginLeft: '0.4rem', cursor: 'pointer' }}>×</button>
@@ -156,7 +170,7 @@ export default function CandidateResumePage() {
 
           <div style={labelStyle}>Tillar:</div>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
-            {profile.languages.map(l => (
+            {visibleProfile.languages.map(l => (
               <span key={l.language} style={{ backgroundColor: '#f1f5f9', color: '#334155', padding: '0.35rem 0.75rem', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }}>
                 {l.language} — <strong>{l.level}</strong>
               </span>
@@ -172,9 +186,9 @@ export default function CandidateResumePage() {
           <button onClick={() => setEditingSection('portfolio')} style={editSectionBtnStyle}>✏️ Tahrirlash</button>
         </div>
         <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-          <a href={profile.portfolio.github} target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 700, textDecoration: 'underline' }}>GitHub Profile</a>
-          <a href={profile.portfolio.linkedin} target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 700, textDecoration: 'underline' }}>LinkedIn Profile</a>
-          <a href={profile.portfolio.website} target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 700, textDecoration: 'underline' }}>Shaxsiy Veb-sayt</a>
+          <a href={visibleProfile.portfolio.github} target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 700, textDecoration: 'underline' }}>GitHub Profile</a>
+          <a href={visibleProfile.portfolio.linkedin} target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 700, textDecoration: 'underline' }}>LinkedIn Profile</a>
+          <a href={visibleProfile.portfolio.website} target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 700, textDecoration: 'underline' }}>Shaxsiy Veb-sayt</a>
         </div>
       </div>
 
@@ -191,6 +205,34 @@ export default function CandidateResumePage() {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @media (max-width: 720px) {
+          .resume-top-card {
+            padding: 1.25rem !important;
+            align-items: stretch !important;
+            flex-direction: column;
+          }
+
+          .resume-actions {
+            flex-wrap: wrap;
+          }
+
+          .resume-actions button {
+            flex: 1 1 140px;
+          }
+
+          .resume-two-column {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .resume-actions button {
+            flex-basis: 100%;
+          }
+        }
+      `}</style>
     </div>
   )
 }

@@ -8,17 +8,16 @@ export async function proxy(request: NextRequest) {
 
   // 1. Port / Host Based Routing
   if (pathname === '/') {
+    // Only redirect if specifically accessing port 3001 (HR) or port 3002 (SuperAdmin)
     if (host.includes(':3001') || host.startsWith('hr.')) {
       return NextResponse.redirect(new URL('/hr/dashboard', request.url))
     }
     if (host.includes(':3002') || host.startsWith('admin.')) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url))
     }
-    if (host.includes(':3000') || host.startsWith('candidate.')) {
-      return NextResponse.redirect(new URL('/candidate/dashboard', request.url))
-    }
-    // Default fallback to candidate dashboard
-    return NextResponse.redirect(new URL('/candidate/dashboard', request.url))
+
+    // On Port 3000 (default localhost:3000), render the Public hh.uz Job Board landing page directly (NO REDIRECT!)
+    return NextResponse.next()
   }
 
   // 2. HR Authentication Check
@@ -39,8 +38,6 @@ export async function proxy(request: NextRequest) {
         // invalid session
       }
     }
-
-    // Note: For dev demo convenience, allow access if visiting HR pages directly
   }
 
   return NextResponse.next()

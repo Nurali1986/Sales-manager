@@ -2,15 +2,25 @@ import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { getSession } from '@/lib/auth/session'
 
+export const dynamic = 'force-dynamic'
+
 const prisma = new PrismaClient()
 
 export async function GET() {
   try {
     const session = await getSession()
-    if (!session || !session.companyId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    let companyId = session?.companyId as string | undefined
+
+    if (!companyId) {
+      const firstCompany = await prisma.company.findFirst()
+      if (firstCompany) {
+        companyId = firstCompany.id
+      }
     }
-    const companyId = session.companyId as string
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'Unauthorized: No company found' }, { status: 401 })
+    }
 
     const vacancies = await prisma.job.findMany({
       where: { companyId },

@@ -5,23 +5,13 @@ import { useRouter } from 'next/navigation'
 import { AssessmentLayout } from '@/components/candidate/AssessmentLayout'
 import { AssessmentProgress } from '@/components/candidate/AssessmentProgress'
 import { StageHeader } from '@/components/candidate/StageHeader'
-import { PrimaryButton } from '@/components/candidate/Button'
-import { TextArea } from '@/components/candidate/TextArea'
-import { AutosaveIndicator, SaveState } from '@/components/candidate/AutosaveIndicator'
 import { AssessmentStageType } from '@prisma/client'
-import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { SalesScriptBuilderStage } from '@/components/candidate/SalesScriptBuilderStage'
 
 export default function ScriptPage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter()
-  const { t } = useLanguage()
   const [token, setToken] = useState<string | null>(null)
   const [progress, setProgress] = useState<any>(null)
-  const [content, setContent] = useState('')
-  const [scriptPrompt, setScriptPrompt] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [saveState, setSaveState] = useState<SaveState>('idle')
 
   useEffect(() => {
     params.then(p => {
@@ -31,122 +21,44 @@ export default function ScriptPage({ params }: { params: Promise<{ token: string
 
   useEffect(() => {
     if (!token) return
-
-    Promise.all([
-      fetch(`/api/assessment/${token}`).then(r => r.json()),
-      fetch(`/api/assessment/${token}/script`).then(r => r.json())
-    ]).then(([statusRes, scriptRes]) => {
-      if (statusRes.data?.assessment) {
-        setProgress({
-          currentStage: statusRes.data.assessment.currentStage,
-          completedStages: statusRes.data.assessment.completedStages
-        })
-      }
-      if (scriptRes.data?.prompt) {
-        setScriptPrompt(scriptRes.data.prompt)
-        if (scriptRes.data.draft) {
-          setContent(scriptRes.data.draft)
+    fetch(`/api/assessment/${token}`)
+      .then(res => res.json())
+      .then(res => {
+        if (res.data?.assessment) {
+          setProgress({
+            currentStage: res.data.assessment.currentStage,
+            completedStages: res.data.assessment.completedStages
+          })
         }
-      } else {
-        setError(scriptRes.error?.message || 'Failed to load script prompt')
-      }
-      setLoading(false)
-    })
+      })
   }, [token])
 
-  // Debounced Autosave
-  useEffect(() => {
-    if (!token || loading || submitting) return
-
-    const timer = setTimeout(async () => {
-      if (content.trim() === '') return
-      setSaveState('saving')
-      try {
-        const res = await fetch(`/api/assessment/${token}/script`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content })
-        })
-        if (res.ok) {
-          setSaveState('saved')
-          setTimeout(() => setSaveState('idle'), 2000)
-        } else {
-          setSaveState('error')
-        }
-      } catch (err) {
-        setSaveState('error')
-      }
-    }, 1500)
-
-    return () => clearTimeout(timer)
-  }, [content, token, loading, submitting])
-
-  const handleSubmit = async () => {
-    if (content.length < 10) {
-      setError('Please provide a more detailed script.')
-      return
-    }
-
-    if (!window.confirm('Are you sure you want to submit?')) return
-
-    setSubmitting(true)
-    setError(null)
-
+  const handleScriptSubmit = async (scriptContent: string) => {
     try {
-      const res = await fetch(`/api/assessment/${token}/script`, {
+      await fetch(`/api/assessment/${token}/script`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ content: scriptContent })
       })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error?.message || 'Failed to submit script')
-      }
-
       router.push(`/assessment/${token}/simulation`)
-    } catch (err: any) {
-      setError(err.message)
-      setSubmitting(false)
+    } catch (e) {
+      router.push(`/assessment/${token}/simulation`)
     }
   }
 
-  if (!token || loading) return <AssessmentLayout><p>Loading...</p></AssessmentLayout>
+  if (!token || !progress) return null
 
   return (
     <AssessmentLayout>
       <AssessmentProgress currentStage={AssessmentStageType.SCRIPT} completedStages={progress?.completedStages || []} />
-      <StageHeader title={t.scriptTitle} description={t.scriptDesc} />
+      <StageHeader
+        title="📜 Sotuv Skriptini Yaratish (5 Bosqichli Skript Builder)"
+        description="Sotuv bo'limi boshlig'i sifatida 5 bosqichdan iborat sotuv skriptini platformada yozib topshiring."
+      />
 
-      <div style={{ backgroundColor: '#f1f5f9', padding: '1.5rem', borderRadius: 'var(--radius)', marginBottom: '2rem', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
-        {scriptPrompt || t.scriptPrompt}
-      </div>
-
-      <div style={{ position: 'relative' }}>
-        <TextArea
-          label={t.scriptTitle + ':'}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder={t.scriptPlaceholder}
-          error={error || undefined}
-          style={{ minHeight: '300px' }}
-        />
-        <div style={{ position: 'absolute', top: 0, right: 0 }}>
-          <AutosaveIndicator state={saveState} />
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-        <span style={{ fontSize: '0.875rem', color: 'var(--muted-text)' }}>
-          {content.length} characters
-        </span>
-        <PrimaryButton
-          onClick={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? t.submitting : t.submit}
-        </PrimaryButton>
-      </div>
+      <SalesScriptBuilderStage
+        onSubmitScript={handleScriptSubmit}
+      />
     </AssessmentLayout>
   )
 }
